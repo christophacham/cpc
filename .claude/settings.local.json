@@ -3,7 +3,13 @@
     "allow": [
       "Bash(go mod init:*)",
       "Bash(mkdir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(docker:*)",
+      "Bash(go mod:*)",
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" mod download)",
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/server/main.go)",
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" mod tidy)"
     ],
     "deny": []
   }

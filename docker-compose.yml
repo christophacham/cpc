@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -19,22 +17,23 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: cpc-api
-    environment:
-      DATABASE_URL: postgres://cpc_user:cpc_password@postgres:5432/cpc_db?sslmode=disable
-      PORT: 8080
-    ports:
-      - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./:/app
-    command: go run cmd/server/main.go
+  # Uncomment this section after testing database connection
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: cpc-api
+  #   environment:
+  #     DATABASE_URL: postgres://cpc_user:cpc_password@postgres:5432/cpc_db?sslmode=disable
+  #     PORT: 8080
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./:/app
+  #   command: go run cmd/server/main.go
 
 volumes:
   postgres-data:
