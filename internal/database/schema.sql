@@ -1,49 +1,6 @@
--- Initial database schema for CPC (Cloud Price Compare)
+-- Azure Pricing Database Schema
+-- Designed for efficient storage and querying of pricing data
 
--- Create a simple messages table for testing
-CREATE TABLE IF NOT EXISTS messages (
-    id SERIAL PRIMARY KEY,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Insert a welcome message
-INSERT INTO messages (content) VALUES ('Welcome to Cloud Price Compare!');
-
--- Create the main pricing tables (basic structure for now)
-CREATE TABLE IF NOT EXISTS providers (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS service_categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Insert initial providers
-INSERT INTO providers (name) VALUES ('AWS'), ('Azure');
-
--- Insert initial categories based on CLAUDE.md
-INSERT INTO service_categories (name, description) VALUES 
-    ('General', 'Core infrastructure and foundational services'),
-    ('Networking', 'Network connectivity, load balancing, CDN'),
-    ('Compute & Web', 'Virtual machines, containers, serverless compute'),
-    ('Containers', 'Container orchestration and management'),
-    ('Databases', 'Relational, NoSQL, and specialized databases'),
-    ('Storage', 'Object storage, file systems, backup solutions'),
-    ('AI & ML', 'Machine learning, cognitive services, AI tools'),
-    ('Analytics & IoT', 'Data analytics, streaming, IoT platforms'),
-    ('Virtual Desktop', 'Desktop virtualization and workspace solutions'),
-    ('Dev Tools', 'Development, CI/CD, and testing tools'),
-    ('Integration', 'API management, messaging, event services'),
-    ('Migration', 'Data migration and transfer services'),
-    ('Management', 'Monitoring, governance, security tools');
-
--- Azure Pricing Tables
 -- Core service reference tables
 CREATE TABLE IF NOT EXISTS azure_services (
     id SERIAL PRIMARY KEY,
@@ -113,6 +70,14 @@ CREATE TABLE IF NOT EXISTS azure_pricing (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     collection_version INTEGER DEFAULT 1,
     
+    -- Indexes for common queries
+    INDEX idx_pricing_service_region (service_id, region_id),
+    INDEX idx_pricing_product_region (product_id, region_id),
+    INDEX idx_pricing_meter (meter_id),
+    INDEX idx_pricing_effective_date (effective_start_date),
+    INDEX idx_pricing_price (retail_price),
+    INDEX idx_pricing_collection (collection_version, created_at),
+    
     -- Unique constraint to prevent duplicates
     UNIQUE(service_id, product_id, sku_id, region_id, meter_id, effective_start_date)
 );
@@ -127,20 +92,19 @@ CREATE TABLE IF NOT EXISTS azure_collection_runs (
     total_items INTEGER DEFAULT 0,
     regions_collected TEXT[], -- array of region names
     error_message TEXT,
-    collection_metadata JSONB
+    collection_metadata JSONB,
+    
+    INDEX idx_collection_version (version),
+    INDEX idx_collection_status (status),
+    INDEX idx_collection_date (started_at)
 );
 
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_service_region ON azure_pricing(service_id, region_id);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_product_region ON azure_pricing(product_id, region_id);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_meter ON azure_pricing(meter_id);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_effective_date ON azure_pricing(effective_start_date);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_price ON azure_pricing(retail_price);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_collection ON azure_pricing(collection_version, created_at);
+-- Update existing service_categories if needed
+INSERT INTO service_categories (name, description) VALUES 
+    ('Compute', 'Virtual machines, containers, serverless compute'),
+    ('Networking', 'Network connectivity, load balancing, CDN')
+ON CONFLICT (name) DO NOTHING;
 
-CREATE INDEX IF NOT EXISTS idx_azure_collection_version ON azure_collection_runs(version);
-CREATE INDEX IF NOT EXISTS idx_azure_collection_status ON azure_collection_runs(status);
-CREATE INDEX IF NOT EXISTS idx_azure_collection_date ON azure_collection_runs(started_at);
-
+-- Create indexes on existing tables
 CREATE INDEX IF NOT EXISTS idx_providers_name ON providers(name);
 CREATE INDEX IF NOT EXISTS idx_categories_name ON service_categories(name);

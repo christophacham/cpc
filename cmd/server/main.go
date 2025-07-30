@@ -139,6 +139,52 @@ func graphQLHandler(db *database.DB) http.HandlerFunc {
 			}
 		}
 
+		// Handle Azure pricing queries
+		if contains(req.Query, "azureServices") {
+			services, err := db.GetAzureServices()
+			if err != nil {
+				response.Errors = append(response.Errors, err.Error())
+			} else {
+				serviceList := make([]map[string]interface{}, len(services))
+				for i, service := range services {
+					serviceList[i] = map[string]interface{}{
+						"id":            fmt.Sprintf("%d", service.ID),
+						"serviceName":   service.ServiceName,
+						"serviceFamily": service.ServiceFamily,
+						"createdAt":     service.CreatedAt.Format("2006-01-02T15:04:05Z"),
+					}
+				}
+				data["azureServices"] = serviceList
+			}
+		}
+
+		if contains(req.Query, "azureRegions") {
+			regions, err := db.GetAzureRegions()
+			if err != nil {
+				response.Errors = append(response.Errors, err.Error())
+			} else {
+				regionList := make([]map[string]interface{}, len(regions))
+				for i, region := range regions {
+					regionList[i] = map[string]interface{}{
+						"id":            fmt.Sprintf("%d", region.ID),
+						"armRegionName": region.ARMRegionName,
+						"displayName":   region.DisplayName,
+						"createdAt":     region.CreatedAt.Format("2006-01-02T15:04:05Z"),
+					}
+				}
+				data["azureRegions"] = regionList
+			}
+		}
+
+		if contains(req.Query, "azurePricing") {
+			pricing, err := db.GetAzurePricingSample(20) // Get 20 sample items
+			if err != nil {
+				response.Errors = append(response.Errors, err.Error())
+			} else {
+				data["azurePricing"] = pricing
+			}
+		}
+
 		// Handle mutations
 		if contains(req.Query, "mutation") && contains(req.Query, "createMessage") {
 			// Extract content from query (simplified)
@@ -231,19 +277,23 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       <h3>Query:</h3>
       <textarea id="query">{
   hello
-  messages {
+  azureServices {
     id
-    content
-    createdAt
+    serviceName
+    serviceFamily
   }
-  providers {
+  azureRegions {
     id
-    name
+    armRegionName
+    displayName
   }
-  categories {
-    id
-    name
-    description
+  azurePricing {
+    serviceName
+    productName
+    skuName
+    region
+    retailPrice
+    unitOfMeasure
   }
 }</textarea>
       <br><br>

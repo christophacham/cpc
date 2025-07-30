@@ -12,7 +12,8 @@
       "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" mod tidy)",
       "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-explorer/main.go)",
       "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-collector/main.go)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-full-collector/main.go)"
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-full-collector/main.go)",
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-db-collector/main.go)"
     ],
     "deny": []
   }
