@@ -83,8 +83,44 @@ Every pricing item has:
 - Region info
 - ServiceFamily (category)
 
+### 4. Azure Pricing Database
+- **Schema**: Normalized tables for services, products, SKUs, regions, and pricing
+- **Population**: `cmd/azure-db-collector/main.go` - Fetches and stores pricing data
+- **Data**: Successfully stored 1000+ Azure pricing records with proper relationships
+- **GraphQL Queries**:
+  - `azureServices` - Lists all Azure services
+  - `azureRegions` - Lists all Azure regions  
+  - `azurePricing` - Sample pricing data with full details
+
+### Test Azure Database Features
+```bash
+# Populate database with Azure pricing
+go run cmd/azure-db-collector/main.go
+
+# Query Azure data via GraphQL
+curl -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{azureServices{serviceName serviceFamily} azurePricing{serviceName productName retailPrice unitOfMeasure region}}"}'
+```
+
+## Architecture Summary
+
+### Database Schema (Normalized)
+- `azure_services` - Service catalog (62 unique services)
+- `azure_regions` - Region catalog (1 region so far)  
+- `azure_products` - Products within services (397 unique)
+- `azure_skus` - SKUs within products (802 unique)
+- `azure_pricing` - Main pricing table with foreign keys
+- `azure_collection_runs` - Tracks data collection versions
+
+### Data Collection Pipeline
+1. **Fetch** from Azure Retail Pricing API (no auth required)
+2. **Normalize** into relational structure
+3. **Store** with proper relationships and deduplication
+4. **Track** collection versions and metadata
+
 ## Next Steps
-1. Design database schema for pricing data
-2. Build service-to-category mapping
-3. Create data normalization pipeline
-4. Enhance GraphQL schema for pricing queries
+1. Expand to collect from all Azure regions
+2. Add service-to-category mapping logic
+3. Implement pricing comparison queries
+4. Add data refresh/update mechanisms
