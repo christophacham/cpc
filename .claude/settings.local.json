@@ -9,7 +9,10 @@
       "Bash(go mod:*)",
       "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" mod download)",
       "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/server/main.go)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" mod tidy)"
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" mod tidy)",
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-explorer/main.go)",
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-collector/main.go)",
+      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-full-collector/main.go)"
     ],
     "deny": []
   }
