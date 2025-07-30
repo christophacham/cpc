@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cpc-postgres
+    environment:
+      POSTGRES_USER: cpc_user
+      POSTGRES_PASSWORD: cpc_password
+      POSTGRES_DB: cpc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cpc_user -d cpc_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cpc-api
+    environment:
+      DATABASE_URL: postgres://cpc_user:cpc_password@postgres:5432/cpc_db?sslmode=disable
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+    command: go run cmd/server/main.go
+
+volumes:
+  postgres-data:

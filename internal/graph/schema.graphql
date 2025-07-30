@@ -1,0 +1,29 @@
+type Query {
+  hello: String!
+  messages: [Message!]!
+  providers: [Provider!]!
+  categories: [Category!]!
+}
+
+type Mutation {
+  createMessage(content: String!): Message!
+}
+
+type Message {
+  id: ID!
+  content: String!
+  createdAt: String!
+}
+
+type Provider {
+  id: ID!
+  name: String!
+  createdAt: String!
+}
+
+type Category {
+  id: ID!
+  name: String!
+  description: String
+  createdAt: String!
+}
