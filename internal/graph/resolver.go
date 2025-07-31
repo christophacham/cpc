@@ -6,11 +6,18 @@ import (
 	"strconv"
 
 	"github.com/raulc0399/cpc/internal/database"
+	"github.com/raulc0399/cpc/internal/etl"
 )
 
 // Resolver is the root resolver
 type Resolver struct {
-	DB *database.DB
+	DB       *database.DB
+	pipeline *etl.Pipeline
+}
+
+// SetPipeline sets the ETL pipeline for the resolver
+func (r *Resolver) SetPipeline(pipeline *etl.Pipeline) {
+	r.pipeline = pipeline
 }
 
 // Query returns the query resolver

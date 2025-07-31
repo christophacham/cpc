@@ -20,7 +20,10 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(psql:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(go generate:*)",
+      "Bash(go run:*)",
+      "Bash(go get:*)"
     ],
     "deny": []
   }

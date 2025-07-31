@@ -3,10 +3,18 @@ type Query {
   messages: [Message!]!
   providers: [Provider!]!
   categories: [Category!]!
+  
+  # ETL Queries
+  etlJob(id: ID!): ETLJob
+  etlJobs: [ETLJob!]!
 }
 
 type Mutation {
   createMessage(content: String!): Message!
+  
+  # ETL Mutations
+  startNormalization(config: NormalizationConfigInput!): ETLJob!
+  cancelETLJob(id: ID!): Boolean!
 }
 
 type Message {
@@ -26,4 +34,65 @@ type Category {
   name: String!
   description: String
   createdAt: String!
+}
+
+# ETL Types
+type ETLJob {
+  id: ID!
+  type: ETLJobType!
+  provider: String
+  status: ETLJobStatus!
+  progress: ETLJobProgress
+  startedAt: String!
+  completedAt: String
+  error: String
+  configuration: ETLJobConfiguration!
+}
+
+type ETLJobProgress {
+  totalRecords: Int!
+  processedRecords: Int!
+  normalizedRecords: Int!
+  skippedRecords: Int!
+  errorRecords: Int!
+  currentStage: String!
+  lastUpdated: String!
+  rate: Float!
+}
+
+type ETLJobConfiguration {
+  providers: [String!]
+  regions: [String!]
+  services: [String!]
+  batchSize: Int!
+  concurrentWorkers: Int!
+  clearExisting: Boolean!
+  dryRun: Boolean!
+}
+
+enum ETLJobType {
+  NORMALIZE_ALL
+  NORMALIZE_PROVIDER
+  NORMALIZE_REGION
+  NORMALIZE_SERVICE
+  CLEANUP_NORMALIZED
+}
+
+enum ETLJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+input NormalizationConfigInput {
+  type: ETLJobType!
+  providers: [String!]
+  regions: [String!]
+  services: [String!]
+  batchSize: Int
+  concurrentWorkers: Int
+  clearExisting: Boolean
+  dryRun: Boolean
 }

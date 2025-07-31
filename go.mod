@@ -1,6 +1,6 @@
 module github.com/raulc0399/cpc
 
-go 1.22
+go 1.23.0
 
 toolchain go1.24.5
 
@@ -11,9 +11,11 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.9.0
+	github.com/vektah/gqlparser/v2 v2.5.11
 )
 
 require (
+	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.37.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.2 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.1 // indirect
@@ -29,6 +31,5 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sosodev/duration v1.2.0 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
