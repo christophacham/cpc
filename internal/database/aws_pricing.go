@@ -510,7 +510,7 @@ func GetMajorAWSServices() []string {
 	}
 }
 
-// StoreAWSPricing stores AWS pricing data in the database
+// StoreAWSPricing stores AWS pricing data in the database using raw JSONB approach
 func StoreAWSPricing(db *sql.DB, pricingItems []AWSPricingItem, collectionID string) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -520,10 +520,9 @@ func StoreAWSPricing(db *sql.DB, pricingItems []AWSPricingItem, collectionID str
 
 	stmt, err := tx.Prepare(`
 		INSERT INTO aws_pricing_raw (
-			collection_id, service_code, service_name, location, 
-			instance_type, price_per_unit, unit, currency, 
-			term_type, attributes, raw_product, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			collection_id, service_code, service_name, location,
+			data, collected_at
+		) VALUES ($1, $2, $3, $4, $5, $6)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
@@ -531,20 +530,13 @@ func StoreAWSPricing(db *sql.DB, pricingItems []AWSPricingItem, collectionID str
 	defer stmt.Close()
 
 	for _, item := range pricingItems {
-		attributesJSON, _ := json.Marshal(item.Attributes)
-		
+		// Store the complete raw product JSON as the data field
 		_, err = stmt.Exec(
 			collectionID,
 			item.ServiceCode,
 			item.ServiceName,
 			item.Location,
-			item.InstanceType,
-			item.PricePerUnit,
-			item.Unit,
-			item.Currency,
-			item.TermType,
-			attributesJSON,
-			item.RawProduct,
+			item.RawProduct, // Store entire raw AWS product JSON
 			time.Now(),
 		)
 		if err != nil {
