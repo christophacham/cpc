@@ -43,3 +43,20 @@ postgres-data/
 
 # Cache files
 *_cache.json
+
+# Credentials and sensitive files
+aws.txt
+*.credentials
+*.key
+*.pem
+
+# Documentation site build artifacts
+docs-site/.docusaurus/
+docs-site/build/
+docs-site/node_modules/
+docs-site/package-lock.json
+
+# Backup and temporary files
+*_old.go
+*.bak
+*.tmp
