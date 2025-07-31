@@ -1,35 +1,67 @@
-# CPC - Current State Documentation
+# CPC - Current State Documentation (Raw JSON Approach)
 
 ## What We Have
 
 ### 1. GraphQL API Server
 - **Location**: `cmd/server/main.go`
-- **Features**: Basic GraphQL endpoint with database connection
+- **Features**: GraphQL endpoint with raw JSON storage and population endpoints
 - **Queries Available**:
   - `hello` - Returns greeting message
   - `messages` - Lists all messages from database
   - `providers` - Shows AWS and Azure
   - `categories` - Shows 13 service categories
+  - `azureRegions` - Lists regions with collected data
+  - `azureServices` - Lists services with collected data
+  - `azurePricing` - Raw Azure pricing data
+  - `azureCollections` - Collection run tracking
   - `createMessage` mutation - Adds a message
 
-### 2. Azure Pricing Tools
-- **Explorer** (`cmd/azure-explorer/main.go`): Tests API queries for one service per category
-- **Collector** (`cmd/azure-collector/main.go`): Fetches pricing from multiple regions
-- **Full Collector** (`cmd/azure-full-collector/main.go`): Gets ALL pricing from one region
+### 2. Population Endpoints
+- **Single Region**: `POST /populate` - Collect data for one region
+- **All Regions**: `POST /populate-all` - Collect data from all 70+ Azure regions
+- **Interactive UI**: Web playground with region buttons
 
-### 3. Database
+### 3. Azure Data Collection Tools
+- **Raw Collector** (`cmd/azure-raw-collector/main.go`): Collects raw JSON data for single region
+- **All Regions Collector** (`cmd/azure-all-regions/main.go`): Concurrent collection from all regions
+- **Legacy Tools**: Explorer and normalized collectors (deprecated)
+
+### 4. Database (Simplified Raw JSON Approach)
 - PostgreSQL running in Docker
-- Initial tables: messages, providers, service_categories
-- Pre-populated with AWS/Azure providers and 13 categories
+- **Raw storage**: `azure_pricing_raw` table with JSONB data
+- **Collection tracking**: `azure_collections` table
+- **Core tables**: messages, providers, service_categories
+
+### 5. Docker Services
+- **PostgreSQL**: Database with health checks
+- **API Server**: Go application with population endpoints
+- **Documentation**: Docusaurus site with API guides
+- **Complete Stack**: All services orchestrated with docker-compose
 
 ## How to Test
 
 ### Start the Services
+
+**Option 1: Full Docker Stack (Recommended)**
 ```bash
-# Start PostgreSQL
+# Start all services (PostgreSQL + API + Documentation)
+docker-compose up -d
+
+# Or start specific services
+docker-compose up -d postgres api
+```
+
+**Available Services:**
+- **GraphQL API**: http://localhost:8080
+- **Documentation**: http://localhost:3000  
+- **PostgreSQL**: localhost:5432
+
+**Option 2: Local Development**
+```bash
+# Start PostgreSQL only
 docker-compose up -d postgres
 
-# Run the API server
+# Run the API server locally
 go run cmd/server/main.go
 ```
 
@@ -42,85 +74,123 @@ curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
   -d '{"query": "{hello}"}'
 
-# Get all data
+# Get basic system info
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
-  -d '{"query": "{hello messages{id content createdAt} providers{id name} categories{id name description}}"}'
+  -d '{"query": "{hello providers{name} categories{name}}"}'
 
-# Create a message
+# Get Azure data overview
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
-  -d '{"query": "mutation {createMessage(content: \"Testing!\") {id content createdAt}}"}'
+  -d '{"query": "{azureRegions{name} azureServices{name} azureCollections{region status}}"}'
+
+# Get raw pricing data
+curl -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{azurePricing{serviceName retailPrice unitOfMeasure armRegionName}}"}'
 ```
 
-### Test Azure Pricing Tools
+### Test Population Endpoints
 ```bash
-# Explore one service from each category
-go run cmd/azure-explorer/main.go
+# Populate single region
+curl -X POST http://localhost:8080/populate \
+  -H "Content-Type: application/json" \
+  -d '{"region": "eastus"}'
 
-# Collect from multiple regions (limited data)
-go run cmd/azure-collector/main.go
+# Populate all regions (concurrent)
+curl -X POST http://localhost:8080/populate-all \
+  -H "Content-Type: application/json" \
+  -d '{"concurrency": 3}'
+```
 
-# Get ALL pricing from East US (takes ~3 seconds)
-go run cmd/azure-full-collector/main.go
+### Test Raw Data Collection Tools
+```bash
+# Collect single region
+go run cmd/azure-raw-collector/main.go eastus
+
+# Collect all regions (with 3 concurrent workers)
+go run cmd/azure-all-regions/main.go 3
+```
+
+### Docker Management
+```bash
+# View running containers
+docker-compose ps
+
+# View logs
+docker-compose logs api
+docker-compose logs postgres
+docker-compose logs docs
+
+# Stop services
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
+
+# Scale specific services (if needed)
+docker-compose up -d --scale api=2
 ```
 
 ## Key Findings
 
 ### Azure API
 - **No auth required** - It's a public API
-- **71 regions** available
-- **83 services** in our test
-- **2000+ pricing items** per region
+- **70+ regions** available worldwide
+- **100+ services** across different categories
+- **2000+ pricing items** per region (varies by region)
 - Returns prices in various units (hour, GB/month, transactions, etc.)
 
-### Data Structure
-Every pricing item has:
+### Raw Data Structure
+Every pricing item from Azure API contains:
 - ServiceName (e.g., "Virtual Machines")
 - ProductName (e.g., "Virtual Machines BS Series")
 - SKU & MeterName (specific configurations)
-- Price, Currency, Unit
-- Region info
+- RetailPrice, UnitPrice, Currency, UnitOfMeasure
+- ArmRegionName, Location (region info)
 - ServiceFamily (category)
+- EffectiveStartDate, PriceType
+- Complete metadata preserved as JSON
 
-### 4. Azure Pricing Database
-- **Schema**: Normalized tables for services, products, SKUs, regions, and pricing
-- **Population**: `cmd/azure-db-collector/main.go` - Fetches and stores pricing data
-- **Data**: Successfully stored 1000+ Azure pricing records with proper relationships
-- **GraphQL Queries**:
-  - `azureServices` - Lists all Azure services
-  - `azureRegions` - Lists all Azure regions  
-  - `azurePricing` - Sample pricing data with full details
+## Architecture Summary (Raw JSON Approach)
 
-### Test Azure Database Features
-```bash
-# Populate database with Azure pricing
-go run cmd/azure-db-collector/main.go
-
-# Query Azure data via GraphQL
-curl -X POST http://localhost:8080/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "{azureServices{serviceName serviceFamily} azurePricing{serviceName productName retailPrice unitOfMeasure region}}"}'
-```
-
-## Architecture Summary
-
-### Database Schema (Normalized)
-- `azure_services` - Service catalog (62 unique services)
-- `azure_regions` - Region catalog (1 region so far)  
-- `azure_products` - Products within services (397 unique)
-- `azure_skus` - SKUs within products (802 unique)
-- `azure_pricing` - Main pricing table with foreign keys
-- `azure_collection_runs` - Tracks data collection versions
+### Database Schema (Simplified)
+- `azure_pricing_raw` - Raw Azure API responses stored as JSONB
+- `azure_collections` - Collection run tracking and metadata
+- `providers` - Cloud providers (AWS, Azure)
+- `service_categories` - Service categorization
+- `messages` - System messages
 
 ### Data Collection Pipeline
 1. **Fetch** from Azure Retail Pricing API (no auth required)
-2. **Normalize** into relational structure
-3. **Store** with proper relationships and deduplication
-4. **Track** collection versions and metadata
+2. **Store** raw JSON responses in JSONB column
+3. **Index** key fields for fast queries
+4. **Track** collection runs and status
+
+### Benefits of Raw JSON Approach
+- **Simpler**: No complex normalization logic
+- **Flexible**: Preserves all original data
+- **Fast**: Direct JSON inserts
+- **Scalable**: Easy to add new providers/regions
+- **Future-proof**: Can normalize later if needed
+
+## Population Capabilities
+
+### Single Region Collection
+- Collect pricing data for any specific Azure region
+- ~2000-5000 items per region
+- Takes 30-60 seconds per region
+
+### All Regions Collection
+- Concurrent collection from 70+ Azure regions
+- Configurable concurrency (3-10 workers recommended)
+- Total time: 30-60 minutes for complete global dataset
+- Estimated total records: 150,000-300,000 pricing items
 
 ## Next Steps
-1. Expand to collect from all Azure regions
-2. Add service-to-category mapping logic
-3. Implement pricing comparison queries
-4. Add data refresh/update mechanisms
+1. ✅ Collect data from all Azure regions
+2. Add intelligent region selection (active regions only)
+3. Implement pricing comparison queries across regions
+4. Add automated data refresh scheduling
+5. Expand to AWS pricing data
+6. Add cost calculation and comparison features

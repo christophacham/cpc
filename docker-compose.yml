@@ -17,23 +17,20 @@ services:
       timeout: 5s
       retries: 5
 
-  # Uncomment this section after testing database connection
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: cpc-api
-  #   environment:
-  #     DATABASE_URL: postgres://cpc_user:cpc_password@postgres:5432/cpc_db?sslmode=disable
-  #     PORT: 8080
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./:/app
-  #   command: go run cmd/server/main.go
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cpc-api
+    environment:
+      DATABASE_URL: postgres://cpc_user:cpc_password@postgres:5432/cpc_db?sslmode=disable
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
   docs:
     build: ./docs-site
