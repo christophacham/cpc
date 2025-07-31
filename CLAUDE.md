@@ -4,7 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## Project Overview
 
-Cloud Price Compare is a production-grade API service that aggregates, normalizes, and serves pricing data from AWS and Azure through a unified GraphQL API. The service provides both raw provider-specific pricing data and standardized formats for easy comparison across cloud providers.
+Cloud Price Compare is a production-grade API service that aggregates and serves Azure pricing data through a unified GraphQL API with raw JSON storage and on-demand population endpoints. Currently focused on Azure with plans to expand to AWS.
+
+## Current Status (v2.0 - Raw JSON Approach)
+
+**✅ Completed Features:**
+- **Docker Stack**: Complete containerized deployment (PostgreSQL + API + Documentation)
+- **GraphQL API**: Working server with comprehensive queries and web playground
+- **Azure Data Collection**: Real-time collection from Azure Retail Pricing API
+- **Raw JSON Storage**: Simplified storage approach with JSONB columns
+- **Population Endpoints**: On-demand single region and all-regions collection
+- **Progress Tracking**: Real-time collection status with detailed progress monitoring
+- **Web Interface**: Interactive playground with progress monitoring and auto-refresh
+
+**📊 Current Capabilities:**
+- **70+ Azure regions** supported for data collection
+- **18,000+ pricing items** per region (tested with eastus)
+- **22-second collection time** per region
+- **Concurrent collection** support for multiple regions
+- **Real-time progress updates** with page-level tracking
+- **No authentication required** (public Azure API)
 
 ## Project Goals
 
@@ -34,23 +53,36 @@ All cloud services must be mapped to these standardized categories:
 - **Migration** - Data migration and transfer services
 - **Management** - Monitoring, governance, security tools
 
-## Architecture Guidelines
+## Current Architecture (v2.0)
 
-### Data Collection Strategy
+### Raw JSON Storage Approach
+**Database Schema:**
+- `azure_pricing_raw` - Raw Azure API responses stored as JSONB
+- `azure_collections` - Collection run tracking with progress metadata
+- `providers` - Cloud providers (AWS, Azure)
+- `service_categories` - Service categorization (13 types)
+- `messages` - System messages
 
-**AWS Pricing Collection:**
-- Use AWS Price List Query API for real-time pricing
-- Handle ALL pricing models (on-demand, reserved, spot, savings plans)
-- Collect data for 200+ AWS services across all regions
-- Implement exponential backoff for API rate limits
-- Consider bulk API for large services like EC2, RDS, S3
+**Benefits:**
+- **Simpler**: No complex normalization logic
+- **Flexible**: Preserves all original data
+- **Fast**: Direct JSON inserts
+- **Scalable**: Easy to add new providers/regions
+- **Future-proof**: Can normalize later if needed
 
-**Azure Pricing Collection:**
-- Use Azure Retail Pricing API (no authentication required)
-- Collect all pricing tiers (consumption, reservation, spot)
-- Query all Azure services across all regions
-- Handle pagination with NextPageLink
-- API is faster than AWS, can update more frequently
+### Azure Data Collection (Production Ready)
+- **API**: Azure Retail Pricing API (`https://prices.azure.com/api/retail/prices`)
+- **Authentication**: None required (public API)
+- **Rate Limiting**: Generous limits with retry logic
+- **Pagination**: NextPageLink handling
+- **Filtering**: OData syntax for region-specific queries
+- **Progress**: Real-time tracking with database updates
+
+### Docker Stack
+- **PostgreSQL**: Database with health checks and volume persistence
+- **Go API Server**: GraphQL server with integrated collection logic
+- **Documentation**: Docusaurus site for API guides
+- **Orchestration**: docker-compose with proper service dependencies
 
 ### Database Design Principles
 
@@ -97,14 +129,35 @@ All cloud services must be mapped to these standardized categories:
 - Handle concurrent data collection jobs
 - Support future growth without major refactoring
 
-## Implementation Priorities
+## Available Endpoints (Current)
 
-1. **Data Models First** - Design database schema and GraphQL types
-2. **Collection Scripts** - Build robust data collectors for both providers
-3. **Normalization Logic** - Create service mapping and categorization
-4. **API Layer** - Implement GraphQL with efficient resolvers
-5. **Infrastructure** - Deploy on AWS with automation
-6. **Update Pipeline** - Set up monthly collection workflow
+### GraphQL API (`http://localhost:8080/query`)
+- **hello** - System status and greeting
+- **providers** - Cloud providers (AWS, Azure) 
+- **categories** - Service categories (13 types)
+- **azureRegions** - Azure regions with collected data
+- **azureServices** - Azure services with collected data
+- **azurePricing** - Raw Azure pricing data with filters
+- **azureCollections** - Collection run tracking and progress
+
+### Population Endpoints
+- **POST /populate** - Collect data for single Azure region
+- **POST /populate-all** - Collect data from all Azure regions concurrently
+
+### Web Playground (`http://localhost:8080`)
+- Interactive GraphQL playground with sample queries
+- Region-specific population buttons (East US, West US, etc.)
+- Real-time progress monitoring with auto-refresh
+- Pre-built query templates
+
+## Next Implementation Priorities
+
+1. **✅ Azure Data Collection** - COMPLETED
+2. **✅ Raw JSON Storage** - COMPLETED  
+3. **✅ Docker Stack** - COMPLETED
+4. **🔄 AWS Pricing Integration** - Next major milestone
+5. **📊 Cross-Provider Comparison** - Future enhancement
+6. **🚀 Production Deployment** - AWS hosting
 
 ## Technical Decisions
 
@@ -143,11 +196,25 @@ All cloud services must be mapped to these standardized categories:
 
 ## Success Criteria
 
-- Complete pricing data for all AWS and Azure services
-- Accurate service categorization with confidence scores
-- Fast query performance for common use cases
-- Reliable monthly updates without manual intervention
-- Clear documentation for API consumers
+**✅ Phase 1 (Azure Foundation) - ACHIEVED:**
+- ✅ Complete Docker containerization with health checks
+- ✅ Working GraphQL API with comprehensive queries
+- ✅ Azure pricing data collection for all regions
+- ✅ Real-time progress tracking and monitoring
+- ✅ Interactive web playground with auto-refresh
+- ✅ Raw JSON storage with JSONB indexing
+
+**🔄 Phase 2 (AWS Integration) - IN PROGRESS:**
+- AWS Price List Query API integration
+- Unified data model for cross-provider queries
+- Service equivalency mapping between providers
+- Enhanced GraphQL schema for comparison queries
+
+**📋 Phase 3 (Production Ready) - PLANNED:**
+- Production deployment on AWS infrastructure
+- Automated monthly data refresh pipeline
+- Performance optimization for large datasets
+- API documentation and usage guides
 
 ## Anti-Patterns to Avoid
 
@@ -157,13 +224,59 @@ All cloud services must be mapped to these standardized categories:
 - Don't create a UI (API only)
 - Don't ignore rate limits or API costs
 
+## Deployment Instructions
+
+### Quick Start (Current)
+```bash
+# Clone and start complete stack
+git clone <repository>
+cd cpc
+docker-compose up -d
+
+# Access services
+# - GraphQL API: http://localhost:8080
+# - Documentation: http://localhost:3000
+# - PostgreSQL: localhost:5432
+```
+
+### Data Population
+```bash
+# Single region
+curl -X POST http://localhost:8080/populate \
+  -H "Content-Type: application/json" \
+  -d '{"region": "eastus"}'
+
+# All major regions
+curl -X POST http://localhost:8080/populate-all \
+  -H "Content-Type: application/json" \
+  -d '{"concurrency": 3}'
+```
+
+### Development Commands
+```bash
+# Local development
+docker-compose up -d postgres  # Database only
+go run cmd/server/main.go       # API server locally
+
+# Direct collection tools
+go run cmd/azure-raw-collector/main.go eastus
+go run cmd/azure-all-regions/main.go 3
+```
+
 ## Future Considerations
 
-- Service equivalency mappings between providers
-- Cost calculation endpoints
-- Historical pricing trends
-- Pricing change notifications
-- Multi-currency support
+**Immediate Next Steps:**
+- AWS Price List Query API integration
+- Cross-provider service mapping
+- Enhanced filtering and search capabilities
+- Performance optimization for large datasets
+
+**Long-term Enhancements:**
+- Cost calculation endpoints with usage patterns
+- Historical pricing trends and change detection
+- Multi-currency support with exchange rates
+- Service recommendation engine
+- Pricing change notifications via webhooks
 
 ## API Implementation Details (Go)
 

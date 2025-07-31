@@ -1,82 +1,139 @@
 # CPC - Cloud Price Compare
 
-A production-grade API service that aggregates, normalizes, and serves pricing data from AWS and Azure through a unified GraphQL API.
+A production-grade API service that aggregates and serves Azure pricing data through a unified GraphQL API with raw JSON storage and on-demand population endpoints.
 
 ## Quick Start
 
 ### Prerequisites
 
-- Go 1.21+
+- Go 1.24+
 - Docker and Docker Compose
-- Make (optional)
 
-### Running with Docker Compose
+### Running with Docker Compose (Recommended)
 
-1. Start the services:
+1. Start the complete stack (PostgreSQL + API + Documentation):
 ```bash
 docker-compose up -d
 ```
 
-2. Access the GraphQL playground:
-```
-http://localhost:8080
-```
+2. Access the services:
+- **GraphQL API & Playground**: http://localhost:8080
+- **Documentation**: http://localhost:3000
+- **PostgreSQL**: localhost:5432
 
-3. Try a simple query:
+### Basic GraphQL Queries
+
+**System Information:**
 ```graphql
 query {
   hello
-  messages {
-    id
-    content
-    createdAt
-  }
-  providers {
-    id
-    name
-  }
-  categories {
-    id
-    name
-    description
-  }
+  providers { name }
+  categories { name description }
 }
 ```
 
-4. Create a message:
+**Azure Data Overview:**
 ```graphql
-mutation {
-  createMessage(content: "Testing the GraphQL API!") {
-    id
-    content
-    createdAt
+query {
+  azureRegions { name }
+  azureServices { name }
+  azureCollections {
+    collectionId
+    region
+    status
+    totalItems
+    startedAt
   }
 }
 ```
 
-### Development Setup
-
-1. Install dependencies:
-```bash
-go mod download
+**Raw Azure Pricing Data:**
+```graphql
+query {
+  azurePricing {
+    serviceName
+    productName
+    retailPrice
+    unitOfMeasure
+    armRegionName
+  }
+}
 ```
 
-2. Run database migrations (handled by init.sql on first start)
+## Population Endpoints
 
-3. Run the server:
+### Single Region Collection
 ```bash
+# Collect pricing data for East US
+curl -X POST http://localhost:8080/populate \
+  -H "Content-Type: application/json" \
+  -d '{"region": "eastus"}'
+```
+
+### All Regions Collection
+```bash
+# Collect data from all 70+ Azure regions (concurrent)
+curl -X POST http://localhost:8080/populate-all \
+  -H "Content-Type: application/json" \
+  -d '{"concurrency": 3}'
+```
+
+### Progress Monitoring
+```graphql
+query {
+  azureCollections {
+    region
+    status
+    totalItems
+    progress
+    duration
+    errorMessage
+  }
+}
+```
+
+## Available Endpoints
+
+### GraphQL API (`http://localhost:8080/query`)
+- **hello** - System status and greeting
+- **providers** - Cloud providers (AWS, Azure)
+- **categories** - Service categories (13 types)
+- **azureRegions** - Azure regions with collected data
+- **azureServices** - Azure services with collected data
+- **azurePricing** - Raw Azure pricing data with filters
+- **azureCollections** - Collection run tracking and progress
+
+### Population Endpoints
+- **POST /populate** - Collect data for single Azure region
+- **POST /populate-all** - Collect data from all Azure regions concurrently
+
+### Web Playground (`http://localhost:8080`)
+- Interactive GraphQL playground with sample queries
+- Region-specific population buttons
+- Real-time progress monitoring with auto-refresh
+- Pre-built query templates
+
+## Development Setup
+
+### Local Development (Alternative)
+```bash
+# Start PostgreSQL only
+docker-compose up -d postgres
+
+# Install Go dependencies
+go mod download
+
+# Run the API server locally
 go run cmd/server/main.go
 ```
 
-### Available Make Commands
-
+### Direct Data Collection Tools
 ```bash
-make help        # Show available commands
-make run         # Run the application locally
-make build       # Build the application
-make docker-up   # Start Docker containers
-make docker-down # Stop Docker containers
-make docker-logs # View Docker logs
+# Collect single region data
+go run cmd/azure-raw-collector/main.go eastus
+
+# Collect all regions with 3 concurrent workers
+go run cmd/azure-all-regions/main.go 3
 ```
 
 ## Project Structure
@@ -84,29 +141,36 @@ make docker-logs # View Docker logs
 ```
 cpc/
 ├── cmd/
-│   └── server/
-│       └── main.go          # Application entry point
-├── internal/
-│   ├── database/
-│   │   └── database.go      # Database operations
-│   └── graph/
-│       ├── schema.graphql   # GraphQL schema definition
-│       ├── resolver.go      # GraphQL resolvers
-│       ├── model.go         # GraphQL models
-│       └── generated.go     # Generated GraphQL code
-├── docker-compose.yml       # Docker Compose configuration
-├── Dockerfile              # Docker image definition
-├── init.sql               # Initial database schema
-├── go.mod                 # Go module definition
-├── Makefile              # Build commands
-└── README.md             # This file
+│   ├── server/main.go              # GraphQL API server with population endpoints
+│   ├── azure-raw-collector/        # Single region data collector
+│   └── azure-all-regions/          # Multi-region concurrent collector
+├── internal/database/
+│   ├── database.go                 # Core database operations
+│   └── azure_raw.go               # Azure raw data operations & progress tracking
+├── docs-site/                     # Docusaurus documentation site
+├── docker-compose.yml             # Complete Docker stack
+├── Dockerfile                     # Go application container
+├── init.sql                       # Database schema (raw JSON approach)
+└── .dockerignore                  # Docker build optimization
 ```
 
-## Next Steps
+## Architecture
 
-- [ ] Implement AWS pricing data collection
-- [ ] Implement Azure pricing data collection
-- [ ] Add comprehensive GraphQL schema for pricing data
-- [ ] Set up data normalization pipeline
-- [ ] Add caching layer
-- [ ] Deploy to AWS infrastructure
+### Raw JSON Storage Approach
+- **azure_pricing_raw** - Raw Azure API responses stored as JSONB
+- **azure_collections** - Collection run tracking with progress metadata
+- **Simplified pipeline** - Direct JSON storage, query on-demand
+- **Preserved metadata** - Complete Azure API response structure maintained
+
+### Key Features
+- **No authentication required** - Uses Azure's public pricing API
+- **70+ regions supported** - Global Azure region coverage
+- **Concurrent collection** - Configurable worker pools for faster data gathering
+- **Progress tracking** - Real-time status updates with collection metadata
+- **Docker orchestration** - Complete containerized stack ready for deployment
+
+## Data Scale
+- **~2,000-5,000 pricing items** per Azure region
+- **150,000-300,000 total records** for complete global dataset
+- **30-60 minutes** for full all-regions collection
+- **30-60 seconds** per single region collection

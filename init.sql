@@ -1,4 +1,5 @@
--- Initial database schema for CPC (Cloud Price Compare)
+-- Simplified database schema for CPC (Cloud Price Compare)
+-- Using raw JSON storage approach
 
 -- Create a simple messages table for testing
 CREATE TABLE IF NOT EXISTS messages (
@@ -10,7 +11,7 @@ CREATE TABLE IF NOT EXISTS messages (
 -- Insert a welcome message
 INSERT INTO messages (content) VALUES ('Welcome to Cloud Price Compare!');
 
--- Create the main pricing tables (basic structure for now)
+-- Create the main pricing tables (basic structure)
 CREATE TABLE IF NOT EXISTS providers (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
@@ -43,104 +44,45 @@ INSERT INTO service_categories (name, description) VALUES
     ('Migration', 'Data migration and transfer services'),
     ('Management', 'Monitoring, governance, security tools');
 
--- Azure Pricing Tables
--- Core service reference tables
-CREATE TABLE IF NOT EXISTS azure_services (
+-- Azure Raw Pricing Data - Simplified approach
+CREATE TABLE IF NOT EXISTS azure_pricing_raw (
     id SERIAL PRIMARY KEY,
-    service_name VARCHAR(100) NOT NULL UNIQUE,
-    service_family VARCHAR(50) NOT NULL,
-    category_id INTEGER REFERENCES service_categories(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    region VARCHAR(100) NOT NULL,
+    service_name VARCHAR(100),
+    service_family VARCHAR(100),
+    data JSONB NOT NULL, -- Store entire Azure API response
+    collected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    collection_id VARCHAR(50), -- For tracking collection batches
+    total_items INTEGER DEFAULT 0 -- Number of items in this batch
 );
 
-CREATE TABLE IF NOT EXISTS azure_regions (
+-- Collection tracking for raw data
+CREATE TABLE IF NOT EXISTS azure_collections (
     id SERIAL PRIMARY KEY,
-    arm_region_name VARCHAR(50) NOT NULL UNIQUE,
-    display_name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS azure_products (
-    id SERIAL PRIMARY KEY,
-    service_id INTEGER NOT NULL REFERENCES azure_services(id),
-    product_name VARCHAR(200) NOT NULL,
-    product_id VARCHAR(100) UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    UNIQUE(service_id, product_name)
-);
-
-CREATE TABLE IF NOT EXISTS azure_skus (
-    id SERIAL PRIMARY KEY,
-    product_id INTEGER NOT NULL REFERENCES azure_products(id),
-    sku_name VARCHAR(100) NOT NULL,
-    sku_id VARCHAR(100) UNIQUE,
-    arm_sku_name VARCHAR(100),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    UNIQUE(product_id, sku_name)
-);
-
--- Main pricing table - optimized for queries
-CREATE TABLE IF NOT EXISTS azure_pricing (
-    id BIGSERIAL PRIMARY KEY,
-    
-    -- References to normalized tables
-    service_id INTEGER NOT NULL REFERENCES azure_services(id),
-    product_id INTEGER NOT NULL REFERENCES azure_products(id),
-    sku_id INTEGER NOT NULL REFERENCES azure_skus(id),
-    region_id INTEGER NOT NULL REFERENCES azure_regions(id),
-    
-    -- Pricing details
-    meter_id VARCHAR(100) NOT NULL,
-    meter_name VARCHAR(200) NOT NULL,
-    retail_price DECIMAL(15,6) NOT NULL,
-    unit_price DECIMAL(15,6) NOT NULL,
-    tier_minimum_units DECIMAL(15,6) DEFAULT 0,
-    currency_code VARCHAR(3) NOT NULL DEFAULT 'USD',
-    unit_of_measure VARCHAR(50) NOT NULL,
-    
-    -- Pricing type and terms
-    price_type VARCHAR(20) NOT NULL DEFAULT 'Consumption',
-    reservation_term VARCHAR(20),
-    
-    -- Temporal data
-    effective_start_date DATE NOT NULL,
-    is_primary_meter_region BOOLEAN DEFAULT false,
-    
-    -- Metadata
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    collection_version INTEGER DEFAULT 1,
-    
-    -- Unique constraint to prevent duplicates
-    UNIQUE(service_id, product_id, sku_id, region_id, meter_id, effective_start_date)
-);
-
--- Collection tracking
-CREATE TABLE IF NOT EXISTS azure_collection_runs (
-    id SERIAL PRIMARY KEY,
-    version INTEGER NOT NULL UNIQUE,
-    started_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    completed_at TIMESTAMP WITH TIME ZONE,
+    collection_id VARCHAR(50) NOT NULL UNIQUE,
+    region VARCHAR(100) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'running', -- running, completed, failed
+    started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE,
     total_items INTEGER DEFAULT 0,
-    regions_collected TEXT[], -- array of region names
     error_message TEXT,
-    collection_metadata JSONB
+    metadata JSONB -- Store additional collection metadata
 );
 
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_service_region ON azure_pricing(service_id, region_id);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_product_region ON azure_pricing(product_id, region_id);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_meter ON azure_pricing(meter_id);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_effective_date ON azure_pricing(effective_start_date);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_price ON azure_pricing(retail_price);
-CREATE INDEX IF NOT EXISTS idx_azure_pricing_collection ON azure_pricing(collection_version, created_at);
+-- Create indexes for performance on raw data
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_raw_region ON azure_pricing_raw(region);
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_raw_service ON azure_pricing_raw(service_name);
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_raw_family ON azure_pricing_raw(service_family);
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_raw_collected ON azure_pricing_raw(collected_at);
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_raw_collection_id ON azure_pricing_raw(collection_id);
 
-CREATE INDEX IF NOT EXISTS idx_azure_collection_version ON azure_collection_runs(version);
-CREATE INDEX IF NOT EXISTS idx_azure_collection_status ON azure_collection_runs(status);
-CREATE INDEX IF NOT EXISTS idx_azure_collection_date ON azure_collection_runs(started_at);
+-- JSONB indexes for querying inside the data
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_raw_data_gin ON azure_pricing_raw USING GIN (data);
+
+-- Collection indexes
+CREATE INDEX IF NOT EXISTS idx_azure_collections_region ON azure_collections(region);
+CREATE INDEX IF NOT EXISTS idx_azure_collections_status ON azure_collections(status);
+CREATE INDEX IF NOT EXISTS idx_azure_collections_started ON azure_collections(started_at);
 
 CREATE INDEX IF NOT EXISTS idx_providers_name ON providers(name);
 CREATE INDEX IF NOT EXISTS idx_categories_name ON service_categories(name);
