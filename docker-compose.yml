@@ -35,5 +35,14 @@ services:
   #     - ./:/app
   #   command: go run cmd/server/main.go
 
+  docs:
+    build: ./docs-site
+    container_name: cpc-docs
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./docs-site:/app
+      - /app/node_modules
+
 volumes:
   postgres-data:
