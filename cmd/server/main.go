@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -33,6 +34,14 @@ type graphQLResponse struct {
 type populationRequest struct {
 	Region      string `json:"region"`
 	Concurrency int    `json:"concurrency,omitempty"`
+}
+
+// AWS Population request structure
+type awsPopulationRequest struct {
+	ServiceCodes  []string `json:"serviceCodes,omitempty"`
+	Regions       []string `json:"regions,omitempty"`
+	InstanceTypes []string `json:"instanceTypes,omitempty"`
+	Concurrency   int      `json:"concurrency,omitempty"`
 }
 
 // Population response structure
@@ -87,6 +96,8 @@ func main() {
 	http.HandleFunc("/query", graphQLHandler(dbHandler))
 	http.HandleFunc("/populate", populateHandler(dbHandler))
 	http.HandleFunc("/populate-all", populateAllHandler(dbHandler))
+	http.HandleFunc("/aws-populate", awsPopulateHandler(dbHandler))
+	http.HandleFunc("/aws-populate-all", awsPopulateAllHandler(dbHandler))
 
 	log.Printf("Starting server on http://localhost:%s/", port)
 	log.Printf("GraphQL playground available at http://localhost:%s/", port)
@@ -394,6 +405,15 @@ func graphQLHandler(db *database.DB) http.HandlerFunc {
 					collectionList[i] = collectionItem
 				}
 				data["azureCollections"] = collectionList
+			}
+		}
+
+		if contains(req.Query, "awsCollections") {
+			collections, err := db.GetAWSCollections()
+			if err != nil {
+				response.Errors = append(response.Errors, err.Error())
+			} else {
+				data["awsCollections"] = collections
 			}
 		}
 
@@ -831,4 +851,275 @@ func collectAzureData(db *database.DB, collectionID string, region string) (int,
 	
 	log.Printf("🎉 [%s] Collection completed! Total items: %d, Pages: %d", region, totalItems, pageCount)
 	return totalItems, nil
+}
+
+// AWS Population endpoint handler
+func awsPopulateHandler(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req awsPopulationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Set defaults
+		if len(req.ServiceCodes) == 0 {
+			req.ServiceCodes = []string{"AmazonEC2"}
+		}
+		if len(req.Regions) == 0 {
+			req.Regions = []string{"us-east-1"}
+		}
+		if len(req.InstanceTypes) == 0 {
+			req.InstanceTypes = []string{"t3.micro", "t3.small", "t3.medium"}
+		}
+
+		log.Printf("Starting AWS data collection for services: %v, regions: %v", req.ServiceCodes, req.Regions)
+
+		// Generate collection ID
+		collectionID := fmt.Sprintf("aws_%d", time.Now().Unix())
+
+		// Start collection in database
+		err := startAWSCollection(db, collectionID, req.ServiceCodes, req.Regions)
+		if err != nil {
+			response := populationResponse{
+				Message: "Failed to start AWS collection",
+				Error:   err.Error(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// Run collector in background
+		go func() {
+			totalItems, err := collectAWSData(db, collectionID, req.ServiceCodes, req.Regions, req.InstanceTypes)
+			if err != nil {
+				log.Printf("AWS collection failed: %v", err)
+				updateAWSCollectionStatus(db, collectionID, "failed", 0, err.Error())
+			} else {
+				log.Printf("AWS collection completed successfully: %d items", totalItems)
+				updateAWSCollectionStatus(db, collectionID, "completed", totalItems, "")
+			}
+		}()
+
+		response := populationResponse{
+			Message:      fmt.Sprintf("AWS data collection started for services: %v, regions: %v", req.ServiceCodes, req.Regions),
+			CollectionID: collectionID,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+// AWS All Regions Population endpoint handler
+func awsPopulateAllHandler(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req awsPopulationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Set defaults
+		if len(req.ServiceCodes) == 0 {
+			req.ServiceCodes = []string{"AmazonEC2", "AmazonS3"}
+		}
+		if req.Concurrency == 0 {
+			req.Concurrency = 3
+		}
+
+		// Define major AWS regions
+		allRegions := []string{
+			"us-east-1", "us-east-2", "us-west-1", "us-west-2",
+			"eu-west-1", "eu-west-2", "eu-central-1",
+			"ap-southeast-1", "ap-southeast-2", "ap-northeast-1",
+		}
+
+		log.Printf("Starting AWS all-regions collection for services: %v with %d concurrent workers", req.ServiceCodes, req.Concurrency)
+
+		// Generate collection ID
+		collectionID := fmt.Sprintf("aws_all_%d", time.Now().Unix())
+
+		// Start collection in database
+		err := startAWSCollection(db, collectionID, req.ServiceCodes, allRegions)
+		if err != nil {
+			response := populationResponse{
+				Message: "Failed to start AWS all-regions collection",
+				Error:   err.Error(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// Run collector in background
+		go func() {
+			totalItems, err := collectAWSDataConcurrent(db, collectionID, req.ServiceCodes, allRegions, req.Concurrency)
+			if err != nil {
+				log.Printf("AWS all-regions collection failed: %v", err)
+				updateAWSCollectionStatus(db, collectionID, "failed", 0, err.Error())
+			} else {
+				log.Printf("AWS all-regions collection completed successfully: %d items", totalItems)
+				updateAWSCollectionStatus(db, collectionID, "completed", totalItems, "")
+			}
+		}()
+
+		response := populationResponse{
+			Message:      fmt.Sprintf("AWS all-regions collection started for services: %v with %d workers", req.ServiceCodes, req.Concurrency),
+			CollectionID: collectionID,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+// collectAWSData collects AWS pricing data for specified services and regions
+func collectAWSData(db *database.DB, collectionID string, serviceCodes []string, regions []string, instanceTypes []string) (int, error) {
+	// Validate AWS credentials are available via environment variables
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" || os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		return 0, fmt.Errorf("AWS credentials not found in environment variables")
+	}
+
+	client, err := database.NewAWSPricingClient()
+	if err != nil {
+		return 0, fmt.Errorf("failed to create AWS pricing client: %w", err)
+	}
+
+	var allPricing []database.AWSPricingItem
+	totalItems := 0
+
+	for _, serviceCode := range serviceCodes {
+		switch serviceCode {
+		case "AmazonEC2":
+			pricing, err := client.GetEC2Pricing(instanceTypes, regions)
+			if err != nil {
+				return totalItems, fmt.Errorf("failed to get EC2 pricing: %w", err)
+			}
+			allPricing = append(allPricing, pricing...)
+			
+		case "AmazonS3":
+			pricing, err := client.GetS3Pricing(regions)
+			if err != nil {
+				return totalItems, fmt.Errorf("failed to get S3 pricing: %w", err)
+			}
+			allPricing = append(allPricing, pricing...)
+			
+		default:
+			log.Printf("WARNING: Unsupported service code: %s", serviceCode)
+		}
+	}
+
+	// Store all pricing data
+	if len(allPricing) > 0 {
+		err = database.StoreAWSPricing(db.GetConn(), allPricing, collectionID)
+		if err != nil {
+			return totalItems, fmt.Errorf("failed to store AWS pricing data: %w", err)
+		}
+		totalItems = len(allPricing)
+	}
+
+	return totalItems, nil
+}
+
+// collectAWSDataConcurrent collects AWS pricing data with concurrent workers
+func collectAWSDataConcurrent(db *database.DB, collectionID string, serviceCodes []string, regions []string, concurrency int) (int, error) {
+	// Validate AWS credentials are available via environment variables
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" || os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		return 0, fmt.Errorf("AWS credentials not found in environment variables")
+	}
+
+	client, err := database.NewAWSPricingClient()
+	if err != nil {
+		return 0, fmt.Errorf("failed to create AWS pricing client: %w", err)
+	}
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var allPricing []database.AWSPricingItem
+	var collectErrors []error
+
+	// Create a semaphore to limit concurrency
+	sem := make(chan struct{}, concurrency)
+
+	for _, serviceCode := range serviceCodes {
+		wg.Add(1)
+		go func(sc string) {
+			defer wg.Done()
+			sem <- struct{}{} // Acquire semaphore
+			defer func() { <-sem }() // Release semaphore
+
+			var pricing []database.AWSPricingItem
+			var err error
+
+			switch sc {
+			case "AmazonEC2":
+				instanceTypes := []string{"t3.micro", "t3.small", "t3.medium"}
+				pricing, err = client.GetEC2Pricing(instanceTypes, regions)
+			case "AmazonS3":
+				pricing, err = client.GetS3Pricing(regions)
+			default:
+				log.Printf("WARNING: Unsupported service code: %s", sc)
+				return
+			}
+
+			mu.Lock()
+			if err != nil {
+				collectErrors = append(collectErrors, fmt.Errorf("failed to collect %s: %w", sc, err))
+			} else {
+				allPricing = append(allPricing, pricing...)
+			}
+			mu.Unlock()
+		}(serviceCode)
+	}
+
+	wg.Wait()
+
+	// Check for collection errors
+	if len(collectErrors) > 0 {
+		return 0, fmt.Errorf("collection errors: %v", collectErrors)
+	}
+
+	// Store all pricing data
+	totalItems := 0
+	if len(allPricing) > 0 {
+		err = database.StoreAWSPricing(db.GetConn(), allPricing, collectionID)
+		if err != nil {
+			return totalItems, fmt.Errorf("failed to store AWS pricing data: %w", err)
+		}
+		totalItems = len(allPricing)
+	}
+
+	return totalItems, nil
+}
+
+// Helper functions for AWS collection tracking
+func startAWSCollection(db *database.DB, collectionID string, serviceCodes []string, regions []string) error {
+	query := `
+		INSERT INTO aws_collections (collection_id, service_codes, regions, status, started_at)
+		VALUES ($1, $2, $3, 'running', $4)
+	`
+	_, err := db.GetConn().Exec(query, collectionID, serviceCodes, regions, time.Now())
+	return err
+}
+
+func updateAWSCollectionStatus(db *database.DB, collectionID string, status string, totalItems int, errorMessage string) error {
+	query := `
+		UPDATE aws_collections 
+		SET status = $2, completed_at = $3, total_items = $4, error_message = $5
+		WHERE collection_id = $1
+	`
+	_, err := db.GetConn().Exec(query, collectionID, status, time.Now(), totalItems, errorMessage)
+	return err
 }

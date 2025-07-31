@@ -20,7 +20,8 @@
       "Bash(go build:*)",
       "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" build cmd/server/main.go)",
       "Bash(taskkill:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

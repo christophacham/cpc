@@ -1,6 +1,6 @@
 # CPC - Cloud Price Compare
 
-A production-grade API service that aggregates and serves Azure pricing data through a unified GraphQL API with raw JSON storage and on-demand population endpoints.
+A production-grade API service that aggregates and serves cloud pricing data from AWS and Azure through a unified GraphQL API with raw JSON storage and on-demand population endpoints.
 
 ## Quick Start
 
@@ -8,6 +8,7 @@ A production-grade API service that aggregates and serves Azure pricing data thr
 
 - Go 1.24+
 - Docker and Docker Compose
+- AWS credentials (for AWS pricing collection) - Access Key + Secret Key in `.env` file
 
 ### Running with Docker Compose (Recommended)
 
@@ -102,10 +103,17 @@ query {
 - **azureServices** - Azure services with collected data
 - **azurePricing** - Raw Azure pricing data with filters
 - **azureCollections** - Collection run tracking and progress
+- **awsCollections** - AWS collection run tracking and progress
 
 ### Population Endpoints
+
+**Azure:**
 - **POST /populate** - Collect data for single Azure region
 - **POST /populate-all** - Collect data from all Azure regions concurrently
+
+**AWS:** (requires `.env` file with AWS credentials)
+- **POST /aws-populate** - Collect AWS pricing for specific services/regions
+- **POST /aws-populate-all** - Collect AWS pricing from multiple regions concurrently
 
 ### Web Playground (`http://localhost:8080`)
 - Interactive GraphQL playground with sample queries

@@ -15,6 +15,11 @@ func New(conn *sql.DB) *DB {
 	return &DB{conn: conn}
 }
 
+// GetConn returns the underlying database connection
+func (db *DB) GetConn() *sql.DB {
+	return db.conn
+}
+
 // Message represents a message in the database
 type Message struct {
 	ID        int

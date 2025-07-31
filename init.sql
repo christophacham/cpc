@@ -86,3 +86,50 @@ CREATE INDEX IF NOT EXISTS idx_azure_collections_started ON azure_collections(st
 
 CREATE INDEX IF NOT EXISTS idx_providers_name ON providers(name);
 CREATE INDEX IF NOT EXISTS idx_categories_name ON service_categories(name);
+
+-- AWS Raw Pricing Data Tables
+CREATE TABLE IF NOT EXISTS aws_pricing_raw (
+    id SERIAL PRIMARY KEY,
+    collection_id VARCHAR(50) NOT NULL,
+    service_code VARCHAR(100) NOT NULL,
+    service_name VARCHAR(100),
+    location VARCHAR(100),
+    instance_type VARCHAR(50),
+    price_per_unit DECIMAL(10,6),
+    unit VARCHAR(50),
+    currency VARCHAR(10) DEFAULT 'USD',
+    term_type VARCHAR(20), -- OnDemand, Reserved
+    attributes JSONB, -- All product attributes
+    raw_product JSONB NOT NULL, -- Complete AWS product JSON
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- AWS Collection tracking
+CREATE TABLE IF NOT EXISTS aws_collections (
+    id SERIAL PRIMARY KEY,
+    collection_id VARCHAR(50) NOT NULL UNIQUE,
+    service_codes TEXT[], -- Array of service codes
+    regions TEXT[], -- Array of regions
+    status VARCHAR(20) NOT NULL DEFAULT 'running', -- running, completed, failed
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    total_items INTEGER DEFAULT 0,
+    error_message TEXT,
+    metadata JSONB
+);
+
+-- AWS indexes for performance
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_collection_id ON aws_pricing_raw(collection_id);
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_service_code ON aws_pricing_raw(service_code);
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_location ON aws_pricing_raw(location);
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_instance_type ON aws_pricing_raw(instance_type);
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_term_type ON aws_pricing_raw(term_type);
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_created ON aws_pricing_raw(created_at);
+
+-- JSONB indexes for AWS data
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_attributes_gin ON aws_pricing_raw USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_product_gin ON aws_pricing_raw USING GIN (raw_product);
+
+-- AWS collection indexes
+CREATE INDEX IF NOT EXISTS idx_aws_collections_status ON aws_collections(status);
+CREATE INDEX IF NOT EXISTS idx_aws_collections_started ON aws_collections(started_at);
