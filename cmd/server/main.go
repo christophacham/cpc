@@ -588,12 +588,10 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       <h3>GraphQL Query:</h3>
       <textarea id="query">{
   hello
-  azureRegions {
-    name
-  }
-  azureServices {
-    name
-  }
+  providers { name }
+  categories { name }
+  
+  # Azure Data
   azureCollections {
     collectionId
     region
@@ -601,13 +599,15 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
     startedAt
     totalItems
   }
-  azurePricing {
-    serviceName
-    productName
-    skuName
-    retailPrice
-    unitOfMeasure
-    armRegionName
+  
+  # AWS Data
+  awsCollections {
+    collectionId
+    serviceCodes
+    regions
+    status
+    startedAt
+    totalItems
   }
 }</textarea>
       <br><br>
@@ -694,10 +694,10 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
           const completed = collections.filter(c => c.status === 'completed');
           const failed = collections.filter(c => c.status === 'failed');
           
-          let progressText = '📊 COLLECTION PROGRESS\\n\\n';
-          progressText += '🔄 Running: ' + running.length + '\\n';
-          progressText += '✅ Completed: ' + completed.length + '\\n';
-          progressText += '❌ Failed: ' + failed.length + '\\n\\n';
+          let progressText = 'AZURE COLLECTION PROGRESS\\n\\n';
+          progressText += 'Running: ' + running.length + '\\n';
+          progressText += 'Completed: ' + completed.length + '\\n';
+          progressText += 'Failed: ' + failed.length + '\\n\\n';
           
           if (running.length > 0) {
             progressText += 'CURRENTLY RUNNING:\\n';
@@ -733,14 +733,14 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       }
       checkProgress(); // Check immediately
       progressInterval = setInterval(checkProgress, 10000); // Every 10 seconds
-      document.getElementById('response').textContent += '\\n\\n🔄 Auto-refresh started (every 10 seconds)...';
+      document.getElementById('response').textContent += '\\n\\nAzure auto-refresh started (every 10 seconds)...';
     }
 
     function stopProgressMonitoring() {
       if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
-        document.getElementById('response').textContent += '\\n\\n⏹️ Auto-refresh stopped.';
+        document.getElementById('response').textContent += '\\n\\nAzure auto-refresh stopped.';
       }
     }
 
@@ -852,14 +852,14 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       }
       checkAWSProgress(); // Check immediately
       awsProgressInterval = setInterval(checkAWSProgress, 10000); // Every 10 seconds
-      document.getElementById('response').textContent += '\\n\\nAWS Auto-refresh started (every 10 seconds)...';
+      document.getElementById('response').textContent += '\\n\\nAWS auto-refresh started (every 10 seconds)...';
     }
 
     function stopAWSProgressMonitoring() {
       if (awsProgressInterval) {
         clearInterval(awsProgressInterval);
         awsProgressInterval = null;
-        document.getElementById('response').textContent += '\\n\\nAWS Auto-refresh stopped.';
+        document.getElementById('response').textContent += '\\n\\nAWS auto-refresh stopped.';
       }
     }
 
