@@ -7,24 +7,18 @@
       "Bash(git commit:*)",
       "Bash(docker:*)",
       "Bash(go mod:*)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" mod download)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/server/main.go)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" mod tidy)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-explorer/main.go)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-collector/main.go)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-full-collector/main.go)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" run cmd/azure-db-collector/main.go)",
       "Bash(npm install)",
       "Bash(npm run build:*)",
       "Bash(mv:*)",
       "Bash(go build:*)",
-      "Bash(\"C:\\Program Files\\Go\\bin\\go.exe\" build cmd/server/main.go)",
       "Bash(taskkill:*)",
       "Bash(git reset:*)",
       "Bash(ls:*)",
       "Bash(git push:*)",
       "Bash(git pull:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
