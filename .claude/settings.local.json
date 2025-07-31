@@ -22,7 +22,8 @@
       "Bash(taskkill:*)",
       "Bash(git reset:*)",
       "Bash(ls:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git pull:*)"
     ],
     "deny": []
   }

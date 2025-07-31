@@ -79,23 +79,58 @@ func NewAWSPricingClient() (*AWSPricingClient, error) {
 	}, nil
 }
 
-// GetEC2Pricing retrieves EC2 pricing for specific instance types and regions
-func (c *AWSPricingClient) GetEC2Pricing(instanceTypes []string, regions []string) ([]AWSPricingItem, error) {
+// GetAllServicePricing retrieves ALL pricing data for specified services and regions
+func (c *AWSPricingClient) GetAllServicePricing(serviceCodes []string, regions []string) ([]AWSPricingItem, error) {
 	var allPricing []AWSPricingItem
 	
-	for _, region := range regions {
-		locationName, exists := AWSRegionLocationMap[region]
-		if !exists {
-			log.Printf("WARNING: Unknown region %s, skipping", region)
+	for _, serviceCode := range serviceCodes {
+		log.Printf("🔥 Collecting ALL pricing data for service: %s", serviceCode)
+		
+		// Get ALL pricing for this service (no filters except service code)
+		pricing, err := c.getAllPricingForService(serviceCode, regions)
+		if err != nil {
+			log.Printf("WARNING: Failed to get pricing for service %s: %v", serviceCode, err)
 			continue
 		}
-		
-		log.Printf("Collecting EC2 pricing for region: %s (%s)", region, locationName)
-		
-		for _, instanceType := range instanceTypes {
-			pricing, err := c.getEC2PricingForInstance(instanceType, locationName, region)
+		allPricing = append(allPricing, pricing...)
+		log.Printf("✅ Collected %d pricing items for service: %s", len(pricing), serviceCode)
+	}
+	
+	return allPricing, nil
+}
+
+// GetEC2Pricing retrieves EC2 pricing for specific instance types and regions (legacy method)
+func (c *AWSPricingClient) GetEC2Pricing(instanceTypes []string, regions []string) ([]AWSPricingItem, error) {
+	// For backward compatibility, call the comprehensive method
+	return c.GetAllServicePricing([]string{"AmazonEC2"}, regions)
+}
+
+// getAllPricingForService gets ALL pricing data for a service across all regions
+func (c *AWSPricingClient) getAllPricingForService(serviceCode string, regions []string) ([]AWSPricingItem, error) {
+	var allPricing []AWSPricingItem
+	
+	if len(regions) == 0 {
+		// If no regions specified, get global pricing (no location filter)
+		log.Printf("🌍 Collecting GLOBAL pricing for service: %s", serviceCode)
+		pricing, err := c.getPricingWithMinimalFilters(serviceCode, "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get global pricing for %s: %w", serviceCode, err)
+		}
+		allPricing = append(allPricing, pricing...)
+	} else {
+		// Collect for each specified region
+		for _, region := range regions {
+			locationName, exists := AWSRegionLocationMap[region]
+			if !exists {
+				log.Printf("WARNING: Unknown region %s, using region name as location", region)
+				locationName = region // Use region name if not in map
+			}
+			
+			log.Printf("📍 Collecting pricing for service %s in region: %s (%s)", serviceCode, region, locationName)
+			
+			pricing, err := c.getPricingWithMinimalFilters(serviceCode, locationName)
 			if err != nil {
-				log.Printf("WARNING: Failed to get pricing for %s in %s: %v", instanceType, region, err)
+				log.Printf("WARNING: Failed to get pricing for %s in %s: %v", serviceCode, region, err)
 				continue
 			}
 			allPricing = append(allPricing, pricing...)
@@ -103,6 +138,76 @@ func (c *AWSPricingClient) GetEC2Pricing(instanceTypes []string, regions []strin
 	}
 	
 	return allPricing, nil
+}
+
+// getPricingWithMinimalFilters gets pricing with only service code and optional location filter
+func (c *AWSPricingClient) getPricingWithMinimalFilters(serviceCode string, locationName string) ([]AWSPricingItem, error) {
+	// Minimal filters - just service code and optionally location
+	filters := []types.Filter{
+		{
+			Type:  types.FilterTypeTermMatch,
+			Field: awsString("ServiceCode"),
+			Value: awsString(serviceCode),
+		},
+	}
+	
+	// Add location filter only if specified
+	if locationName != "" {
+		filters = append(filters, types.Filter{
+			Type:  types.FilterTypeTermMatch,
+			Field: awsString("location"),
+			Value: awsString(locationName),
+		})
+	}
+
+	input := &pricing.GetProductsInput{
+		ServiceCode: awsString(serviceCode),
+		Filters:     filters,
+		MaxResults:  awsInt32(100), // AWS maximum
+	}
+
+	var pricingItems []AWSPricingItem
+	pageCount := 0
+	
+	for {
+		pageCount++
+		log.Printf("📄 Processing page %d for service %s...", pageCount, serviceCode)
+		
+		result, err := c.client.GetProducts(context.TODO(), input)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get products on page %d: %w", pageCount, err)
+		}
+
+		// Process all products on this page
+		for _, product := range result.PriceList {
+			items, err := c.parseAWSProduct(product, locationName)
+			if err != nil {
+				log.Printf("WARNING: Failed to parse product: %v", err)
+				continue
+			}
+			pricingItems = append(pricingItems, items...)
+		}
+		
+		log.Printf("📊 Page %d: processed %d products, total items so far: %d", 
+			pageCount, len(result.PriceList), len(pricingItems))
+
+		// Check if there are more pages
+		if result.NextToken == nil {
+			log.Printf("✅ Completed collection for %s: %d total items across %d pages", 
+				serviceCode, len(pricingItems), pageCount)
+			break
+		}
+		
+		input.NextToken = result.NextToken
+		
+		// Safety break to avoid infinite loops (AWS typically has 20-50 pages per service)
+		if pageCount > 100 {
+			log.Printf("⚠️ Reached page limit (%d) for service %s, stopping", pageCount, serviceCode)
+			break
+		}
+	}
+
+	return pricingItems, nil
 }
 
 // getEC2PricingForInstance gets pricing for a specific EC2 instance type
@@ -340,6 +445,69 @@ func (c *AWSPricingClient) extractPriceInfo(dimension map[string]interface{}) (f
 	unit, _ := dimension["unit"].(string)
 	
 	return price, currency, unit
+}
+
+// GetAllAWSServices returns a comprehensive list of AWS services to collect
+func GetAllAWSServices() []string {
+	return []string{
+		// Core Compute
+		"AmazonEC2", "AWSLambda", "AmazonECS", "AmazonEKS",
+		
+		// Storage
+		"AmazonS3", "AmazonEBS", "AmazonEFS", "AmazonFSx",
+		
+		// Database
+		"AmazonRDS", "AmazonDynamoDB", "AmazonElastiCache", "AmazonRedshift",
+		"AmazonNeptune", "AmazonDocumentDB", "AmazonMemoryDB",
+		
+		// Networking
+		"AmazonVPC", "AmazonCloudFront", "AmazonRoute53", "AWSELB",
+		"AWSDirectConnect", "AmazonVPCEndpoint", "AWSTransitGateway",
+		
+		// Analytics
+		"AmazonEMR", "AmazonKinesis", "AmazonAthena", "AWSGlue",
+		"AmazonQuickSight", "AmazonOpenSearch",
+		
+		// AI/ML
+		"AmazonSageMaker", "AmazonRekognition", "AmazonComprehend",
+		"AmazonTranscribe", "AmazonPolly", "AmazonTranslate",
+		
+		// Application Integration
+		"AmazonSQS", "AmazonSNS", "AmazonSWF", "AWSStepFunctions",
+		"AmazonMQ", "AmazonEventBridge",
+		
+		// Developer Tools
+		"AWSCodeCommit", "AWSCodeBuild", "AWSCodeDeploy", "AWSCodePipeline",
+		
+		// Security & Management
+		"AWSCloudTrail", "AmazonCloudWatch", "AWSConfig", "AWSSecurityHub",
+		"AWSKMS", "AWSSecretsManager", "AWSWAF", "AWSShield",
+		
+		// Migration & Transfer
+		"AWSDataSync", "AWSSnowball", "AWSStorageGateway", "AWSDMS",
+		
+		// Enterprise Applications
+		"AmazonWorkSpaces", "AmazonAppStream", "AmazonConnect",
+		
+		// IoT
+		"AWSIoTCore", "AWSIoTAnalytics", "AWSIoTEvents",
+		
+		// Containers
+		"AWSFargate", "AmazonECR",
+		
+		// Data Transfer (Global)
+		"AWSDataTransfer",
+	}
+}
+
+// GetMajorAWSServices returns the most commonly used AWS services (80/20 rule)
+func GetMajorAWSServices() []string {
+	return []string{
+		"AmazonEC2", "AmazonS3", "AmazonEBS", "AmazonRDS", 
+		"AWSLambda", "AmazonVPC", "AmazonCloudFront", "AWSELB",
+		"AmazonDynamoDB", "AmazonCloudWatch", "AWSDataTransfer",
+		"AmazonRoute53", "AmazonElastiCache", "AmazonEMR",
+	}
 }
 
 // StoreAWSPricing stores AWS pricing data in the database

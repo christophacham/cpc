@@ -98,6 +98,8 @@ func main() {
 	http.HandleFunc("/populate-all", populateAllHandler(dbHandler))
 	http.HandleFunc("/aws-populate", awsPopulateHandler(dbHandler))
 	http.HandleFunc("/aws-populate-all", awsPopulateAllHandler(dbHandler))
+	http.HandleFunc("/aws-populate-comprehensive", awsPopulateComprehensiveHandler(dbHandler))
+	http.HandleFunc("/aws-populate-everything", awsPopulateEverythingHandler(dbHandler))
 
 	log.Printf("Starting server on http://localhost:%s/", port)
 	log.Printf("GraphQL playground available at http://localhost:%s/", port)
@@ -1000,25 +1002,10 @@ func collectAWSData(db *database.DB, collectionID string, serviceCodes []string,
 	var allPricing []database.AWSPricingItem
 	totalItems := 0
 
-	for _, serviceCode := range serviceCodes {
-		switch serviceCode {
-		case "AmazonEC2":
-			pricing, err := client.GetEC2Pricing(instanceTypes, regions)
-			if err != nil {
-				return totalItems, fmt.Errorf("failed to get EC2 pricing: %w", err)
-			}
-			allPricing = append(allPricing, pricing...)
-			
-		case "AmazonS3":
-			pricing, err := client.GetS3Pricing(regions)
-			if err != nil {
-				return totalItems, fmt.Errorf("failed to get S3 pricing: %w", err)
-			}
-			allPricing = append(allPricing, pricing...)
-			
-		default:
-			log.Printf("WARNING: Unsupported service code: %s", serviceCode)
-		}
+	// Use the new comprehensive collection method
+	allPricing, err = client.GetAllServicePricing(serviceCodes, regions)
+	if err != nil {
+		return totalItems, fmt.Errorf("failed to get comprehensive pricing: %w", err)
 	}
 
 	// Store all pricing data
@@ -1060,19 +1047,8 @@ func collectAWSDataConcurrent(db *database.DB, collectionID string, serviceCodes
 			sem <- struct{}{} // Acquire semaphore
 			defer func() { <-sem }() // Release semaphore
 
-			var pricing []database.AWSPricingItem
-			var err error
-
-			switch sc {
-			case "AmazonEC2":
-				instanceTypes := []string{"t3.micro", "t3.small", "t3.medium"}
-				pricing, err = client.GetEC2Pricing(instanceTypes, regions)
-			case "AmazonS3":
-				pricing, err = client.GetS3Pricing(regions)
-			default:
-				log.Printf("WARNING: Unsupported service code: %s", sc)
-				return
-			}
+			// Use comprehensive collection for each service
+			pricing, err := client.GetAllServicePricing([]string{sc}, regions)
 
 			mu.Lock()
 			if err != nil {
@@ -1122,4 +1098,138 @@ func updateAWSCollectionStatus(db *database.DB, collectionID string, status stri
 	`
 	_, err := db.GetConn().Exec(query, collectionID, status, time.Now(), totalItems, errorMessage)
 	return err
+}
+
+// AWS Comprehensive Collection endpoint - collects major AWS services
+func awsPopulateComprehensiveHandler(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req awsPopulationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			// Use defaults if no request body
+			req = awsPopulationRequest{}
+		}
+
+		// Use major AWS services (80/20 rule)
+		majorServices := database.GetMajorAWSServices()
+		req.ServiceCodes = majorServices
+
+		if len(req.Regions) == 0 {
+			req.Regions = []string{
+				"us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1", // Major regions
+			}
+		}
+		if req.Concurrency == 0 {
+			req.Concurrency = 5 // Higher concurrency for comprehensive collection
+		}
+
+		log.Printf("🔥 Starting COMPREHENSIVE AWS collection for %d major services across %d regions", 
+			len(majorServices), len(req.Regions))
+
+		// Generate collection ID
+		collectionID := fmt.Sprintf("aws_comprehensive_%d", time.Now().Unix())
+
+		// Start collection in database
+		err := startAWSCollection(db, collectionID, req.ServiceCodes, req.Regions)
+		if err != nil {
+			response := populationResponse{
+				Message: "Failed to start comprehensive AWS collection",
+				Error:   err.Error(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// Run collector in background
+		go func() {
+			totalItems, err := collectAWSDataConcurrent(db, collectionID, req.ServiceCodes, req.Regions, req.Concurrency)
+			if err != nil {
+				log.Printf("Comprehensive AWS collection failed: %v", err)
+				updateAWSCollectionStatus(db, collectionID, "failed", 0, err.Error())
+			} else {
+				log.Printf("🎉 Comprehensive AWS collection completed successfully: %d items", totalItems)
+				updateAWSCollectionStatus(db, collectionID, "completed", totalItems, "")
+			}
+		}()
+
+		response := populationResponse{
+			Message:      fmt.Sprintf("🔥 Comprehensive AWS collection started: %d services, %d regions", len(req.ServiceCodes), len(req.Regions)),
+			CollectionID: collectionID,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+// AWS Everything Collection endpoint - collects ALL AWS services
+func awsPopulateEverythingHandler(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req awsPopulationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			// Use defaults if no request body
+			req = awsPopulationRequest{}
+		}
+
+		// Use ALL AWS services
+		allServices := database.GetAllAWSServices()
+		req.ServiceCodes = allServices
+
+		if len(req.Regions) == 0 {
+			req.Regions = []string{
+				"us-east-1", "us-west-2", "eu-west-1", // Limited regions for everything collection
+			}
+		}
+		if req.Concurrency == 0 {
+			req.Concurrency = 3 // Conservative concurrency for massive collection
+		}
+
+		log.Printf("🌪️ Starting EVERYTHING AWS collection for %d services across %d regions - THIS WILL TAKE HOURS!", 
+			len(allServices), len(req.Regions))
+
+		// Generate collection ID
+		collectionID := fmt.Sprintf("aws_everything_%d", time.Now().Unix())
+
+		// Start collection in database
+		err := startAWSCollection(db, collectionID, req.ServiceCodes, req.Regions)
+		if err != nil {
+			response := populationResponse{
+				Message: "Failed to start everything AWS collection",
+				Error:   err.Error(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// Run collector in background
+		go func() {
+			totalItems, err := collectAWSDataConcurrent(db, collectionID, req.ServiceCodes, req.Regions, req.Concurrency)
+			if err != nil {
+				log.Printf("Everything AWS collection failed: %v", err)
+				updateAWSCollectionStatus(db, collectionID, "failed", 0, err.Error())
+			} else {
+				log.Printf("🎉 EVERYTHING AWS collection completed successfully: %d items", totalItems)
+				updateAWSCollectionStatus(db, collectionID, "completed", totalItems, "")
+			}
+		}()
+
+		response := populationResponse{
+			Message:      fmt.Sprintf("🌪️ EVERYTHING AWS collection started: %d services, %d regions - Estimated time: 2-6 hours", len(req.ServiceCodes), len(req.Regions)),
+			CollectionID: collectionID,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}
 }
