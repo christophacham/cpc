@@ -18,7 +18,9 @@
       "Bash(git pull:*)",
       "Bash(curl:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(psql:*)",
+      "Bash(go test:*)"
     ],
     "deny": []
   }
