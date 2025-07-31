@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/raulc0399/cpc/internal/database"
 )
 
@@ -1086,7 +1086,7 @@ func startAWSCollection(db *database.DB, collectionID string, serviceCodes []str
 		INSERT INTO aws_collections (collection_id, service_codes, regions, status, started_at)
 		VALUES ($1, $2, $3, 'running', $4)
 	`
-	_, err := db.GetConn().Exec(query, collectionID, serviceCodes, regions, time.Now())
+	_, err := db.GetConn().Exec(query, collectionID, pq.StringArray(serviceCodes), pq.StringArray(regions), time.Now())
 	return err
 }
 

@@ -25,6 +25,9 @@ services:
     environment:
       DATABASE_URL: postgres://cpc_user:cpc_password@postgres:5432/cpc_db?sslmode=disable
       PORT: 8080
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
     ports:
       - "8080:8080"
     depends_on:
