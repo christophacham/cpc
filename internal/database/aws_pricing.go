@@ -615,6 +615,75 @@ func (db *DB) GetAWSCollections() ([]map[string]interface{}, error) {
 	return results, rows.Err()
 }
 
+// AWSRawPricingItem represents a raw AWS pricing record from JSONB storage
+type AWSRawPricingItem struct {
+	ID           int             `json:"id"`
+	ServiceCode  string          `json:"serviceCode"`
+	ServiceName  string          `json:"serviceName"`
+	Location     string          `json:"location"`
+	Data         json.RawMessage `json:"data"`
+	CollectedAt  time.Time       `json:"collectedAt"`
+	CollectionID string          `json:"collectionId"`
+}
+
+// GetAWSRawPricing retrieves AWS pricing data from JSONB storage
+func (db *DB) GetAWSRawPricing(serviceCode, location string, limit int) ([]AWSRawPricingItem, error) {
+	query := `
+		SELECT id, service_code, service_name, location, data, collected_at, collection_id
+		FROM aws_pricing_raw
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	argCount := 0
+	
+	if serviceCode != "" {
+		argCount++
+		query += fmt.Sprintf(" AND service_code = $%d", argCount)
+		args = append(args, serviceCode)
+	}
+	
+	if location != "" {
+		argCount++
+		query += fmt.Sprintf(" AND location = $%d", argCount)
+		args = append(args, location)
+	}
+	
+	query += " ORDER BY collected_at DESC"
+	
+	if limit > 0 {
+		argCount++
+		query += fmt.Sprintf(" LIMIT $%d", argCount)
+		args = append(args, limit)
+	}
+	
+	rows, err := db.conn.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query AWS pricing: %w", err)
+	}
+	defer rows.Close()
+	
+	var results []AWSRawPricingItem
+	
+	for rows.Next() {
+		var item AWSRawPricingItem
+		err := rows.Scan(
+			&item.ID,
+			&item.ServiceCode,
+			&item.ServiceName,
+			&item.Location,
+			&item.Data,
+			&item.CollectedAt,
+			&item.CollectionID,
+		)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, item)
+	}
+	
+	return results, rows.Err()
+}
+
 // Helper functions to create pointers (AWS SDK requirement)
 func awsString(s string) *string {
 	return &s

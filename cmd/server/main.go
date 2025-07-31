@@ -419,6 +419,93 @@ func graphQLHandler(db *database.DB) http.HandlerFunc {
 			}
 		}
 
+		if contains(req.Query, "awsPricing") {
+			// Extract parameters
+			serviceCode := extractParameter(req.Query, "serviceCode")
+			location := extractParameter(req.Query, "location")
+			limitStr := extractParameter(req.Query, "limit")
+			
+			limit := 20 // default
+			if limitStr != "" {
+				if parsedLimit, err := strconv.Atoi(limitStr); err == nil {
+					limit = parsedLimit
+				}
+			}
+
+			// Query AWS pricing data from new JSONB schema
+			rawPricing, err := db.GetAWSRawPricing(serviceCode, location, limit)
+			if err != nil {
+				response.Errors = append(response.Errors, err.Error())
+			} else {
+				// Parse JSONB data to extract fields for GraphQL response
+				pricingList := make([]map[string]interface{}, len(rawPricing))
+				for i, item := range rawPricing {
+					// Parse the JSONB data field to extract pricing information
+					var awsProduct map[string]interface{}
+					if err := json.Unmarshal([]byte(item.Data), &awsProduct); err == nil {
+						// Extract AWS product information
+						pricingItem := map[string]interface{}{
+							"serviceCode": item.ServiceCode,
+							"serviceName": item.ServiceName,
+							"location":    item.Location,
+						}
+						
+						// Extract fields from the raw AWS product JSON
+						if product, ok := awsProduct["product"].(map[string]interface{}); ok {
+							if attributes, ok := product["attributes"].(map[string]interface{}); ok {
+								if instanceType, ok := attributes["instanceType"].(string); ok {
+									pricingItem["instanceType"] = instanceType
+								}
+							}
+						}
+						
+						// Extract pricing information from terms
+						if terms, ok := awsProduct["terms"].(map[string]interface{}); ok {
+							// Look for OnDemand pricing first
+							if onDemand, ok := terms["OnDemand"].(map[string]interface{}); ok {
+								for _, termData := range onDemand {
+									if termMap, ok := termData.(map[string]interface{}); ok {
+										if priceDimensions, ok := termMap["priceDimensions"].(map[string]interface{}); ok {
+											for _, dimension := range priceDimensions {
+												if dimMap, ok := dimension.(map[string]interface{}); ok {
+													if pricePerUnit, ok := dimMap["pricePerUnit"].(map[string]interface{}); ok {
+														for currency, priceStr := range pricePerUnit {
+															if priceString, ok := priceStr.(string); ok {
+																if price, err := strconv.ParseFloat(priceString, 64); err == nil {
+																	pricingItem["pricePerUnit"] = price
+																	pricingItem["currency"] = currency
+																}
+															}
+														}
+													}
+													if unit, ok := dimMap["unit"].(string); ok {
+														pricingItem["unit"] = unit
+													}
+													pricingItem["termType"] = "OnDemand"
+													break // Take first price dimension
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+						
+						pricingList[i] = pricingItem
+					} else {
+						// Fallback if JSON parsing fails
+						pricingList[i] = map[string]interface{}{
+							"serviceCode": item.ServiceCode,
+							"serviceName": item.ServiceName,
+							"location":    item.Location,
+							"error":       "Failed to parse pricing data",
+						}
+					}
+				}
+				data["awsPricing"] = pricingList
+			}
+		}
+
 		// Handle mutations
 		if contains(req.Query, "mutation") && contains(req.Query, "createMessage") {
 			// Extract content from query (simplified)
