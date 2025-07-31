@@ -2,7 +2,7 @@
 
 Welcome to **Cloud Price Compare (CPC)** - the most comprehensive cloud pricing data extraction and comparison platform. Production-tested to extract **500,000+ AWS pricing records** and **300,000+ Azure pricing records**.
 
-## 🚀 What CPC Does
+## What CPC Does
 
 **Complete Data Extraction** - CPC extracts ALL pricing data from AWS and Azure:
 - **✅ 500,000+ AWS pricing records** across 60+ services (production-verified)
@@ -11,7 +11,7 @@ Welcome to **Cloud Price Compare (CPC)** - the most comprehensive cloud pricing 
 - **Every service tier**: From nano instances to high-performance computing
 - **Raw JSON preservation**: No data loss, complete flexibility for analysis
 
-## 🎯 60-Second Complete Setup
+## 60-Second Complete Setup
 
 ### Prerequisites
 
@@ -41,7 +41,7 @@ docker-compose up -d
 
 **That's it!** Your complete cloud pricing extraction platform is ready.
 
-## 🔥 Comprehensive Data Collection
+## Comprehensive Data Collection
 
 ### **AWS - Complete Extraction (Recommended)**
 
@@ -63,7 +63,7 @@ curl -X POST http://localhost:8080/populate -d '{"region": "eastus"}'
 curl -X POST http://localhost:8080/populate-all -d '{"concurrency": 5}'
 ```
 
-## 📊 Query Your Data
+## Query Your Data
 
 ### **Monitor Real-Time Collection Progress**
 
@@ -124,7 +124,7 @@ curl -X POST http://localhost:8080/populate-all -d '{"concurrency": 5}'
 }
 ```
 
-## 🎯 Production Use Cases
+## Production Use Cases
 
 ### **Enterprise Cost Analysis**
 - Extract complete pricing datasets for budget planning
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8080/populate-all -d '{"concurrency": 5}'
 - Historical pricing data for contract planning
 - Cross-provider cost comparison reports
 
-## 📈 Real-World Performance
+## Real-World Performance
 
 **Production-Verified Results**:
 - ✅ **40,000+ EC2 pricing items** collected successfully

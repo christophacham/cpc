@@ -4,7 +4,7 @@
 
 A production-grade API service that **extracts ALL pricing data** from AWS and Azure - every service, every instance type, every pricing model, every region. Built for enterprises who need complete visibility into cloud costs without limitations.
 
-## 🚀 **What Makes CPC Unique**
+## What Makes CPC Unique
 
 **Complete Data Extraction** - Not just samples or popular services. We extract:
 - **500,000+ AWS pricing records** across 60+ services 
@@ -27,7 +27,7 @@ A production-grade API service that **extracts ALL pricing data** from AWS and A
 - **AWS credentials** for comprehensive pricing extraction (free AWS account works)
 - **5-10GB disk space** for complete pricing datasets
 
-### 🎯 **60-Second Complete Setup**
+### 60-Second Complete Setup
 
 ```bash
 # 1. Clone and configure
@@ -47,7 +47,7 @@ docker-compose up -d
 # Database: localhost:5432
 ```
 
-## 🔥 **Comprehensive Data Collection**
+## Comprehensive Data Collection
 
 ### **AWS - Complete Extraction (Recommended)**
 ```bash
@@ -67,7 +67,7 @@ curl -X POST http://localhost:8080/populate -d '{"region": "eastus"}'
 curl -X POST http://localhost:8080/populate-all -d '{"concurrency": 5}'
 ```
 
-## 📊 **Data Analysis & Querying**
+## Data Analysis & Querying
 
 ### **Real-Time Collection Monitoring**
 ```graphql
@@ -126,7 +126,7 @@ curl -X POST http://localhost:8080/populate-all -d '{"concurrency": 5}'
 }
 ```
 
-## 🎯 **Production Endpoints**
+## Production Endpoints
 
 ### **AWS - Comprehensive Collection**
 ```bash
@@ -174,7 +174,7 @@ query {
 }
 ```
 
-## 🏗️ **Complete API Reference**
+## Complete API Reference
 
 ### **GraphQL API** (`http://localhost:8080/query`)
 **Data Queries:**
@@ -190,7 +190,7 @@ query {
 - `azureServices` - Azure services with collected data
 
 ### **Production Collection Endpoints**
-**🔥 AWS Comprehensive (NEW):**
+**AWS Comprehensive (NEW):**
 - `POST /aws-populate-comprehensive` - Major services (14 services, recommended)
 - `POST /aws-populate-everything` - ALL services (60+ services, maximum extraction)
 - `POST /aws-populate` - Custom services/regions
@@ -247,7 +247,7 @@ cpc/
 └── .dockerignore                  # Docker build optimization
 ```
 
-## 🏗️ **Enterprise Architecture**
+## Enterprise Architecture
 
 ### **Dual-Provider Raw JSON Storage**
 - **aws_pricing_raw** - Complete AWS pricing data with full attribute preservation
@@ -263,7 +263,7 @@ cpc/
 - **Progress tracking** - Real-time status updates with detailed metrics
 - **Container orchestration** - Complete Docker stack ready for any environment
 
-## 📊 **Real-World Data Scale**
+## Real-World Data Scale
 
 ### **AWS - Comprehensive Coverage**
 - **✅ 40,000+ EC2 pricing items** (proven in production)

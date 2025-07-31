@@ -18,7 +18,7 @@ cp .env.example .env
 
 > **Note**: The AWS Pricing API only works in the `us-east-1` region, but can collect pricing data for all AWS regions.
 
-## 🔥 Comprehensive Service Coverage (60+ Services)
+## Comprehensive Service Coverage (60+ Services)
 
 **Production-tested comprehensive extraction** supporting all major AWS services:
 
@@ -41,9 +41,9 @@ cp .env.example .env
 **IoT**: IoT Core, IoT Analytics, IoT Events  
 **Migration**: DataSync, Snowball, Storage Gateway, DMS
 
-## 🚀 Production REST Endpoints
+## Production REST Endpoints
 
-### **🔥 Comprehensive Collection (RECOMMENDED)**
+### **Comprehensive Collection (RECOMMENDED)**
 
 **Endpoint**: `POST /aws-populate-comprehensive`
 
@@ -61,7 +61,7 @@ curl -X POST http://localhost:8080/aws-populate-comprehensive
 - **Collection time**: ~30 minutes
 - **Coverage**: 14 major services across 4 key regions
 
-### **💥 Maximum Extraction (EVERYTHING)**
+### **Maximum Extraction (EVERYTHING)**
 
 **Endpoint**: `POST /aws-populate-everything`
 
@@ -119,7 +119,7 @@ curl -X POST http://localhost:8080/aws-populate-all \
 
 **Regions Covered**: 16 major AWS regions including US, EU, and Asia-Pacific
 
-## 📊 Production Data Extraction Results
+## Production Data Extraction Results
 
 ### **EC2 - Comprehensive Coverage**
 
@@ -239,7 +239,7 @@ Common error scenarios:
 3. **Invalid Service Code**: Only supported services (EC2, S3) are accepted
 4. **Region Not Found**: Unknown regions are skipped with warnings
 
-## 🚀 Production Performance Metrics
+## Production Performance Metrics
 
 ### **Real-World Collection Performance**
 
@@ -267,7 +267,7 @@ Common error scenarios:
 - **Minimal API calls**: Optimized pagination and retry logic
 - **Production-ready**: Error resilience and graceful degradation
 
-## ✅ Production Status
+## Production Status
 
 ### **Current Capabilities (Fully Implemented)**
 - ✅ **60+ AWS services** supported

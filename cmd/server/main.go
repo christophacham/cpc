@@ -541,7 +541,26 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
     <h1>Cloud Price Compare - GraphQL Playground (Raw JSON Version)</h1>
     
     <div class="section">
-      <h3>🚀 Population Endpoints</h3>
+      <h3>AWS Population Endpoints</h3>
+      <p><strong>Comprehensive Collection:</strong></p>
+      <button class="populate-btn" onclick="awsPopulateComprehensive()" style="background: #FF9800;">Major AWS Services (~200K records)</button>
+      <button class="populate-btn" onclick="awsPopulateEverything()" style="background: #FF5722;">ALL AWS Services (~500K+ records)</button>
+      <br><br>
+      <p><strong>Custom Service Collection:</strong></p>
+      <button class="populate-btn" onclick="awsPopulateCustom(['AmazonEC2'], ['us-east-1', 'us-west-2'])">EC2 (US East/West)</button>
+      <button class="populate-btn" onclick="awsPopulateCustom(['AmazonRDS'], ['us-east-1', 'eu-west-1'])">RDS (US/EU)</button>
+      <button class="populate-btn" onclick="awsPopulateCustom(['AmazonS3'], ['us-east-1'])">S3 (US East)</button>
+      <br><br>
+      <p><strong>AWS Progress Monitoring:</strong></p>
+      <button onclick="checkAWSProgress()">Check AWS Collection Progress</button>
+      <button onclick="startAWSProgressMonitoring()">Start AWS Auto-Refresh (10s)</button>
+      <button onclick="stopAWSProgressMonitoring()">Stop AWS Auto-Refresh</button>
+      <br><br>
+      <p><em>Note: Comprehensive collection includes 14 major services across 4 regions (~30 minutes). Everything collection includes 60+ services (~2-6 hours).</em></p>
+    </div>
+    
+    <div class="section">
+      <h3>Azure Population Endpoints</h3>
       <p><strong>Single Region Collection:</strong></p>
       <button class="populate-btn" onclick="populateData('eastus')">East US</button>
       <button class="populate-btn" onclick="populateData('westus')">West US</button>
@@ -554,15 +573,15 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       <button class="populate-btn" onclick="populateData('southeastasia')">Southeast Asia</button>
       <br><br>
       <p><strong>All Regions Collection:</strong></p>
-      <button class="populate-btn" onclick="populateAllData(3)" style="background: #FF5722;">🌍 Populate ALL Regions (3 concurrent)</button>
-      <button class="populate-btn" onclick="populateAllData(5)" style="background: #FF5722;">🌍 Populate ALL Regions (5 concurrent)</button>
+      <button class="populate-btn" onclick="populateAllData(3)" style="background: #FF5722;">Populate ALL Regions (3 concurrent)</button>
+      <button class="populate-btn" onclick="populateAllData(5)" style="background: #FF5722;">Populate ALL Regions (5 concurrent)</button>
       <br><br>
-      <p><strong>Progress Monitoring:</strong></p>
-      <button onclick="checkProgress()">📊 Check Collection Progress</button>
-      <button onclick="startProgressMonitoring()">🔄 Start Auto-Refresh (10s)</button>
-      <button onclick="stopProgressMonitoring()">⏹️ Stop Auto-Refresh</button>
+      <p><strong>Azure Progress Monitoring:</strong></p>
+      <button onclick="checkProgress()">Check Azure Collection Progress</button>
+      <button onclick="startProgressMonitoring()">Start Azure Auto-Refresh (10s)</button>
+      <button onclick="stopProgressMonitoring()">Stop Azure Auto-Refresh</button>
       <br><br>
-      <p><em>⚠️ All-regions collection will fetch data from 70+ Azure regions. This may take 30-60 minutes to complete.</em></p>
+      <p><em>Note: All-regions collection will fetch data from 70+ Azure regions. This may take 30-60 minutes to complete.</em></p>
     </div>
     
     <div class="query-area">
@@ -594,9 +613,11 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       <br><br>
       <button onclick="executeQuery()">Execute Query</button>
       <button onclick="loadSample('basic')">Load Basic Query</button>
-      <button onclick="loadSample('pricing')">Load Pricing Query</button>
-      <button onclick="loadSample('collections')">Load Collections Query</button>
-      <button onclick="loadSample('progress')">Load Progress Query</button>
+      <button onclick="loadSample('pricing')">Load Azure Pricing</button>
+      <button onclick="loadSample('collections')">Load Azure Collections</button>
+      <button onclick="loadSample('progress')">Load Azure Progress</button>
+      <button onclick="loadSample('awsPricing')">Load AWS Pricing</button>
+      <button onclick="loadSample('awsCollections')">Load AWS Collections</button>
     </div>
     <div class="response" id="response">Execute a query or populate data to see results...</div>
   </div>
@@ -723,12 +744,133 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       }
     }
 
+    // AWS Population Functions
+    async function awsPopulateComprehensive() {
+      try {
+        document.getElementById('response').textContent = 'Starting comprehensive AWS data collection (major services ~200K records)...';
+        const response = await fetch('/aws-populate-comprehensive', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await response.json();
+        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('response').textContent = 'Error: ' + error.message;
+      }
+    }
+
+    async function awsPopulateEverything() {
+      try {
+        document.getElementById('response').textContent = 'Starting complete AWS data collection (ALL services ~500K+ records)...';
+        const response = await fetch('/aws-populate-everything', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await response.json();
+        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('response').textContent = 'Error: ' + error.message;
+      }
+    }
+
+    async function awsPopulateCustom(serviceCodes, regions) {
+      try {
+        document.getElementById('response').textContent = 'Starting custom AWS data collection for ' + serviceCodes.join(', ') + '...';
+        const response = await fetch('/aws-populate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ serviceCodes, regions }),
+        });
+        const data = await response.json();
+        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('response').textContent = 'Error: ' + error.message;
+      }
+    }
+
+    let awsProgressInterval = null;
+
+    async function checkAWSProgress() {
+      try {
+        const query = '{ awsCollections { collectionId serviceCodes regions status startedAt completedAt totalItems duration errorMessage } }';
+        const response = await fetch('/query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query }),
+        });
+        const data = await response.json();
+        
+        if (data.data && data.data.awsCollections) {
+          const collections = data.data.awsCollections;
+          const running = collections.filter(c => c.status === 'running');
+          const completed = collections.filter(c => c.status === 'completed');
+          const failed = collections.filter(c => c.status === 'failed');
+          
+          let progressText = 'AWS COLLECTION PROGRESS\\n\\n';
+          progressText += 'Running: ' + running.length + '\\n';
+          progressText += 'Completed: ' + completed.length + '\\n';
+          progressText += 'Failed: ' + failed.length + '\\n\\n';
+          
+          if (running.length > 0) {
+            progressText += 'CURRENTLY RUNNING:\\n';
+            running.forEach(c => {
+              progressText += '• Services: ' + (c.serviceCodes || []).join(', ') + '\\n';
+              progressText += '  Regions: ' + (c.regions || []).join(', ') + '\\n';
+              progressText += '  Items collected: ' + (c.totalItems || 0) + '\\n\\n';
+            });
+          }
+          
+          if (completed.length > 0) {
+            progressText += 'RECENTLY COMPLETED:\\n';
+            completed.slice(0, 3).forEach(c => {
+              progressText += '• Services: ' + (c.serviceCodes || []).join(', ') + '\\n';
+              progressText += '  Total items: ' + (c.totalItems || 0) + '\\n';
+              progressText += '  Duration: ' + (c.duration || 'unknown') + '\\n\\n';
+            });
+          }
+          
+          document.getElementById('response').textContent = progressText;
+        } else {
+          document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+      } catch (error) {
+        document.getElementById('response').textContent = 'AWS progress check error: ' + error.message;
+      }
+    }
+
+    function startAWSProgressMonitoring() {
+      if (awsProgressInterval) {
+        clearInterval(awsProgressInterval);
+      }
+      checkAWSProgress(); // Check immediately
+      awsProgressInterval = setInterval(checkAWSProgress, 10000); // Every 10 seconds
+      document.getElementById('response').textContent += '\\n\\nAWS Auto-refresh started (every 10 seconds)...';
+    }
+
+    function stopAWSProgressMonitoring() {
+      if (awsProgressInterval) {
+        clearInterval(awsProgressInterval);
+        awsProgressInterval = null;
+        document.getElementById('response').textContent += '\\n\\nAWS Auto-refresh stopped.';
+      }
+    }
+
     function loadSample(type) {
       const samples = {
         basic: '{\\n  hello\\n  azureRegions {\\n    name\\n  }\\n  azureServices {\\n    name\\n  }\\n}',
         pricing: '{\\n  azurePricing {\\n    serviceName\\n    productName\\n    retailPrice\\n    unitOfMeasure\\n    armRegionName\\n  }\\n}',
         collections: '{\\n  azureCollections {\\n    collectionId\\n    region\\n    status\\n    startedAt\\n    totalItems\\n    completedAt\\n    duration\\n    progress\\n    errorMessage\\n  }\\n}',
-        progress: '{\\n  azureCollections {\\n    region\\n    status\\n    totalItems\\n    progress\\n  }\\n}'
+        progress: '{\\n  azureCollections {\\n    region\\n    status\\n    totalItems\\n    progress\\n  }\\n}',
+        awsPricing: '{\\n  awsPricing {\\n    serviceCode\\n    serviceName\\n    location\\n    instanceType\\n    pricePerUnit\\n    unit\\n    currency\\n    termType\\n  }\\n}',
+        awsCollections: '{\\n  awsCollections {\\n    collectionId\\n    serviceCodes\\n    regions\\n    status\\n    startedAt\\n    totalItems\\n    completedAt\\n    duration\\n    errorMessage\\n  }\\n}'
       };
       document.getElementById('query').value = samples[type] || samples.basic;
     }
