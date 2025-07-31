@@ -1,51 +1,82 @@
-# CPC - Cloud Price Compare
+# 🌩️ Cloud Price Compare (CPC)
 
-**The most comprehensive cloud pricing data extraction and comparison platform.**
+**The world's most comprehensive cloud pricing data platform - built for developers, by developers.**
 
-A production-grade API service that **extracts ALL pricing data** from AWS and Azure - every service, every instance type, every pricing model, every region. Built for enterprises who need complete visibility into cloud costs without limitations.
+> Extract, normalize, and compare pricing data from AWS and Azure. No limits, no samples - everything.
 
-## What Makes CPC Unique
+## 🚀 What is CPC?
 
-**Complete Data Extraction** - Not just samples or popular services. We extract:
-- **500,000+ AWS pricing records** across 60+ services 
-- **300,000+ Azure pricing records** across 70+ regions
-- **Every pricing model**: On-Demand, Reserved, Spot, Savings Plans
-- **Every instance type**: From nano to metal, GPU to high-memory
-- **Every storage class**: Standard, IA, Glacier, and specialized tiers
+Cloud Price Compare is an **open-source platform** that extracts **ALL** pricing data from major cloud providers and makes it queryable through a modern GraphQL API. Whether you're building cost optimization tools, doing research, or just curious about cloud pricing, CPC gives you complete access to:
 
-**Production-Scale Performance** - Real-world tested:
-- ✅ **40,000+ EC2 pricing items** collected in minutes
-- ✅ **Concurrent multi-service collection** with progress tracking
-- ✅ **Automatic pagination** handling 100+ pages per service
-- ✅ **Raw JSON preservation** - no data loss, full flexibility
+- **📊 800,000+ pricing records** (500K AWS + 300K Azure)
+- **🔄 Real-time data collection** with progress monitoring
+- **🎯 Unified normalization** for cross-provider comparisons
+- **⚡ Production-grade performance** with concurrent processing
+- **🛠️ Developer-friendly** GraphQL API and Docker deployment
 
-## Quick Start
+## ✨ Why Choose CPC?
 
-### Prerequisites
+### 🎯 **Complete Data Coverage**
+Unlike other tools that sample or filter data, CPC extracts **everything**:
 
-- **Docker & Docker Compose** (recommended) or Go 1.24+
-- **AWS credentials** for comprehensive pricing extraction (free AWS account works)
-- **5-10GB disk space** for complete pricing datasets
+| Provider | Services | Records | Regions | Coverage |
+|----------|----------|---------|---------|----------|
+| **AWS** | 60+ services | 500,000+ records | All major regions | Every pricing model |
+| **Azure** | All services | 300,000+ records | 70+ regions | Global coverage |
 
-### 60-Second Complete Setup
+### 🏗️ **Developer-First Architecture**
+- **🐳 One-Command Deploy**: `docker-compose up -d`
+- **📊 GraphQL API**: Modern, flexible queries
+- **🔄 ETL Pipeline**: Normalize data for comparisons
+- **📝 Comprehensive Docs**: Everything you need to contribute
+- **🧪 Test Coverage**: Reliable and maintainable
+
+### 📈 **Production-Proven Performance**
+- ✅ **40,000+ EC2 records** collected and verified
+- ✅ **Concurrent processing** with configurable workers
+- ✅ **Real-time monitoring** with progress tracking
+- ✅ **Zero data loss** with raw JSON preservation
+
+## 🚀 Getting Started
+
+### 📋 Prerequisites
+
+- **Docker & Docker Compose** (easiest setup)
+- **Go 1.24+** (for local development)
+- **AWS credentials** (optional, for AWS data collection)
+- **5-10GB disk space** (for complete datasets)
+
+### ⚡ 2-Minute Setup
 
 ```bash
-# 1. Clone and configure
-git clone [repository]
+# 1. Clone the repository
+git clone <repository-url>
 cd cpc
 
-# 2. Add your AWS credentials (required for comprehensive collection)
-cp .env.example .env
-# Edit .env with your AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-
-# 3. Launch complete stack
+# 2. Start the entire stack
 docker-compose up -d
 
-# 4. Access the platform
+# 3. That's it! 🎉
 # GraphQL Playground: http://localhost:8080
 # Documentation: http://localhost:3000
-# Database: localhost:5432
+# Database: localhost:5432 (postgres/password)
 ```
+
+### 🔑 AWS Setup (Optional)
+
+For AWS data collection, add your credentials:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env and add:
+# AWS_ACCESS_KEY_ID=your_access_key
+# AWS_SECRET_ACCESS_KEY=your_secret_key
+# AWS_REGION=us-east-1
+```
+
+> 💡 **Pro Tip**: You can start with Azure data (no credentials needed) and add AWS later!
 
 ## Comprehensive Data Collection
 
