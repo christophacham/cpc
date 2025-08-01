@@ -4,6 +4,10 @@ type Query {
   providers: [Provider!]!
   categories: [Category!]!
   
+  # Cloud Provider Pricing Queries
+  aws: AWSProvider!
+  azure: AzureProvider!
+  
   # ETL Queries
   etlJob(id: ID!): ETLJob
   etlJobs: [ETLJob!]!
@@ -95,4 +99,80 @@ input NormalizationConfigInput {
   concurrentWorkers: Int
   clearExisting: Boolean
   dryRun: Boolean
+}
+
+# AWS Provider Types
+type AWSProvider {
+  compute(region: String!): AWSCompute!
+  storage(region: String!): AWSStorage!
+  dataTransfer(region: String!): AWSDataTransfer!
+}
+
+type AWSCompute {
+  instancePrice(type: String!): Float!
+  instances: [AWSInstance!]!
+}
+
+type AWSInstance {
+  type: String!
+  vcpu: Int!
+  memoryGB: Float!
+  pricePerHour: Float!
+  architecture: String
+  burstable: Boolean
+}
+
+type AWSStorage {
+  pricePerGB(tier: String!): Float!
+  tiers: [AWSStorageTier!]!
+}
+
+type AWSStorageTier {
+  name: String!
+  pricePerGB: Float!
+  description: String
+}
+
+type AWSDataTransfer {
+  pricePerGB(direction: String!): Float!
+  inbound: Float!
+  outbound: Float!
+}
+
+# Azure Provider Types
+type AzureProvider {
+  compute(region: String!): AzureCompute!
+  storage(region: String!): AzureStorage!
+  dataTransfer(region: String!): AzureDataTransfer!
+}
+
+type AzureCompute {
+  vmPrice(size: String!): Float!
+  vms: [AzureVM!]!
+}
+
+type AzureVM {
+  size: String!
+  vcpu: Int!
+  memoryGB: Float!
+  pricePerHour: Float!
+  architecture: String
+  burstable: Boolean
+}
+
+type AzureStorage {
+  pricePerGB(tier: String!): Float!
+  tiers: [AzureStorageTier!]!
+}
+
+type AzureStorageTier {
+  name: String!
+  pricePerGB: Float!
+  description: String
+}
+
+type AzureDataTransfer {
+  pricePerGB(direction: String!): Float!
+  inbound: Float!
+  outbound: Float!
 }

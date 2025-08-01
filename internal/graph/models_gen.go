@@ -170,3 +170,73 @@ func (e *ETLJobType) UnmarshalGQL(v interface{}) error {
 func (e ETLJobType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
+
+// AWS Provider Types
+type AWSProvider struct {
+	resolver *Resolver
+}
+
+type AWSCompute struct {
+	resolver *Resolver
+	region   string
+}
+
+type AWSInstance struct {
+	Type         string   `json:"type"`
+	Vcpu         int      `json:"vcpu"`
+	MemoryGb     float64  `json:"memoryGb"`
+	PricePerHour float64  `json:"pricePerHour"`
+	Architecture *string  `json:"architecture,omitempty"`
+	Burstable    *bool    `json:"burstable,omitempty"`
+}
+
+type AWSStorage struct {
+	resolver *Resolver
+	region   string
+}
+
+type AWSStorageTier struct {
+	Name        string  `json:"name"`
+	PricePerGb  float64 `json:"pricePerGb"`
+	Description *string `json:"description,omitempty"`
+}
+
+type AWSDataTransfer struct {
+	resolver *Resolver
+	region   string
+}
+
+// Azure Provider Types
+type AzureProvider struct {
+	resolver *Resolver
+}
+
+type AzureCompute struct {
+	resolver *Resolver
+	region   string
+}
+
+type AzureVM struct {
+	Size         string   `json:"size"`
+	Vcpu         int      `json:"vcpu"`
+	MemoryGb     float64  `json:"memoryGb"`
+	PricePerHour float64  `json:"pricePerHour"`
+	Architecture *string  `json:"architecture,omitempty"`
+	Burstable    *bool    `json:"burstable,omitempty"`
+}
+
+type AzureStorage struct {
+	resolver *Resolver
+	region   string
+}
+
+type AzureStorageTier struct {
+	Name        string  `json:"name"`
+	PricePerGb  float64 `json:"pricePerGb"`
+	Description *string `json:"description,omitempty"`
+}
+
+type AzureDataTransfer struct {
+	resolver *Resolver
+	region   string
+}
