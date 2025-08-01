@@ -1,17 +1,17 @@
-# 🚀 Getting Started with Cloud Price Compare
+#  Getting Started with Cloud Price Compare
 
 Welcome to **Cloud Price Compare (CPC)** - the world's most comprehensive **open-source** cloud pricing platform! This guide will help you get up and running quickly.
 
-## 🎯 What is CPC?
+##  What is CPC?
 
 Cloud Price Compare extracts, normalizes, and serves **ALL** pricing data from major cloud providers through a modern GraphQL API. Whether you're building cost optimization tools, doing research, or just curious about cloud pricing, CPC gives you complete access to:
 
-- **📊 800,000+ pricing records** (500K AWS + 300K Azure)
-- **🔄 Real-time ETL pipeline** for cross-provider comparisons
-- **🛠️ Developer-friendly** GraphQL API with interactive playground
-- **🐳 One-command deployment** with Docker
+- ** 800,000+ pricing records** (500K AWS + 300K Azure)
+- ** Real-time ETL pipeline** for cross-provider comparisons
+- ** Developer-friendly** GraphQL API with interactive playground
+- ** One-command deployment** with Docker
 
-## ⚡ Quick Start (2 Minutes)
+##  Quick Start (2 Minutes)
 
 ### Prerequisites
 
@@ -45,7 +45,7 @@ curl http://localhost:8080/query -d '{"query": "{ hello }"}'
 # {"data":{"hello":"Welcome to Cloud Price Compare API!"}}
 ```
 
-## 🔍 Explore the Data
+##  Explore the Data
 
 ### GraphQL Playground
 
@@ -81,7 +81,7 @@ query {
 }
 ```
 
-## 📊 Collect Your First Data
+##  Collect Your First Data
 
 ### Azure Data (No Credentials Needed)
 
@@ -118,7 +118,7 @@ docker-compose restart app
 curl -X POST http://localhost:8080/aws-populate-comprehensive
 ```
 
-## 🔄 Normalize Data for Comparisons
+##  Normalize Data for Comparisons
 
 Once you have raw data, use the ETL pipeline to normalize it for cross-provider comparisons:
 
@@ -155,7 +155,7 @@ query {
 }
 ```
 
-## 📊 Real-Time Monitoring
+##  Real-Time Monitoring
 
 Monitor collection progress in real-time:
 
@@ -167,7 +167,7 @@ watch -n 2 'curl -s http://localhost:8080/query -d "{\"query\":\"{ azureCollecti
 watch -n 2 'curl -s http://localhost:8080/query -d "{\"query\":\"{ etlJobs { id status progress { processedRecords rate currentStage } } }\"}" | jq'
 ```
 
-## 🛠️ Development Setup
+##  Development Setup
 
 For local development without Docker:
 
@@ -188,21 +188,21 @@ go run cmd/etl-test/main.go
 go test ./...
 ```
 
-## 📚 What's Next?
+##  What's Next?
 
-### 🔍 Explore the API
+###  Explore the API
 - **[API Reference](api-reference/overview.md)** - Complete GraphQL documentation
 - **[ETL Pipeline Guide](api-reference/etl-pipeline.md)** - Data normalization details
 
-### 🏗️ Understand the Architecture
+###  Understand the Architecture
 - **[Architecture Overview](architecture/overview.md)** - Technical deep-dive
 - **[Database Schema](architecture/database.md)** - Data storage design
 
-### 🤝 Contribute
+###  Contribute
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute
 - **[Development Workflow](development/workflow.md)** - Detailed development guide
 
-### 📊 Use Cases
+###  Use Cases
 - **Cost optimization** - Find cheapest services across providers
 - **Research projects** - Analyze cloud pricing patterns
 - **API integration** - Build your own cost analysis tools
@@ -238,11 +238,11 @@ psql -h localhost -U postgres -d cpc \
 ### Get Support
 
 - **📖 Documentation**: Browse the complete docs at http://localhost:3000
-- **🐛 Bug Reports**: [Create an issue](https://github.com/your-org/cpc/issues)
-- **💡 Feature Requests**: [Start a discussion](https://github.com/your-org/cpc/discussions)
+- ** Bug Reports**: [Create an issue](https://github.com/your-org/cpc/issues)
+- ** Feature Requests**: [Start a discussion](https://github.com/your-org/cpc/discussions)
 - **❓ Questions**: Check the [troubleshooting guide](troubleshooting.md)
 
-## 🌟 What Makes CPC Special?
+##  What Makes CPC Special?
 
 ### Complete Data Coverage
 Unlike other tools that sample or filter data, CPC extracts **everything**:
@@ -265,4 +265,4 @@ Unlike other tools that sample or filter data, CPC extracts **everything**:
 
 ---
 
-**Ready to dive deeper?** Check out the [API Reference](api-reference/overview.md) or start [contributing](../CONTRIBUTING.md) to the project! 🚀
+**Ready to dive deeper?** Check out the [API Reference](api-reference/overview.md) or start [contributing](../CONTRIBUTING.md) to the project! 

@@ -113,7 +113,7 @@ Built-in Go support with excellent debugging capabilities.
 # Find process using port 8080
 lsof -i :8080
 # Kill the process
-kill -9 <PID>
+kill -9 &lt;PID&gt;
 ```
 
 **Docker not running:**

@@ -1,10 +1,10 @@
-# 🔧 Troubleshooting Guide
+#  Troubleshooting Guide
 
 This guide helps you resolve common issues when working with Cloud Price Compare (CPC).
 
-## 🚨 Common Problems & Solutions
+##  Common Problems & Solutions
 
-### 🐳 Docker & Deployment Issues
+###  Docker & Deployment Issues
 
 #### Container Won't Start
 
@@ -61,14 +61,14 @@ lsof -i :5432
 lsof -i :3000
 
 # Kill the process (replace PID)
-kill -9 <PID>
+kill -9 &lt;PID&gt;
 
 # Or use different ports in docker-compose.yml
 ports:
   - "8081:8080"  # API on different port
 ```
 
-### 🌐 API & GraphQL Issues
+###  API & GraphQL Issues
 
 #### GraphQL Playground Not Loading
 
@@ -136,7 +136,7 @@ docker-compose restart app
 # AWS_REGION=us-east-1
 ```
 
-### 📊 Data Collection Issues
+###  Data Collection Issues
 
 #### Azure Collection Stuck
 
@@ -200,7 +200,7 @@ curl -X POST http://localhost:8080/populate-all \
 docker-compose logs app | grep -i "rate\|limit\|throttle"
 ```
 
-### 🔄 ETL Pipeline Issues
+###  ETL Pipeline Issues
 
 #### ETL Job Stuck in PENDING
 
@@ -294,7 +294,7 @@ docker-compose exec postgres psql -U postgres -d cpc \
   -c "VACUUM ANALYZE;"
 ```
 
-### 💾 Database Issues
+###  Database Issues
 
 #### Database Corruption
 
@@ -334,7 +334,7 @@ docker volume prune -f
 
 # Clean up old data
 docker-compose exec postgres psql -U postgres -d cpc \
-  -c "DELETE FROM azure_pricing_raw WHERE created_at < NOW() - INTERVAL '30 days';"
+  -c "DELETE FROM azure_pricing_raw WHERE created_at &lt; NOW() - INTERVAL '30 days';"
 
 # Vacuum to reclaim space
 docker-compose exec postgres psql -U postgres -d cpc \
@@ -368,7 +368,7 @@ mutation {
 }
 ```
 
-### 🖥️ System Performance Issues
+###  System Performance Issues
 
 #### High Memory Usage
 
@@ -427,7 +427,7 @@ mutation {
 # Use cron jobs for large data collections
 ```
 
-## 🔍 Debugging Tools & Commands
+##  Debugging Tools & Commands
 
 ### Useful Diagnostic Commands
 
@@ -469,7 +469,7 @@ watch -n 5 'curl -s http://localhost:8080/query -d "{\"query\":\"{ azureCollecti
 watch -n 10 'docker-compose exec postgres psql -U postgres -d cpc -c "SELECT count(*) as active_queries FROM pg_stat_activity WHERE state = '\''active'\'';"'
 ```
 
-## 📞 Getting Help
+##  Getting Help
 
 ### Before Asking for Help
 
@@ -480,15 +480,15 @@ watch -n 10 'docker-compose exec postgres psql -U postgres -d cpc -c "SELECT cou
 
 ### Where to Get Support
 
-- **🐛 Bug Reports**: [Create an issue](https://github.com/your-org/cpc/issues) with:
+- ** Bug Reports**: [Create an issue](https://github.com/your-org/cpc/issues) with:
   - Complete error messages
   - Steps to reproduce
   - System information (`docker version`, `docker-compose version`)
   - Relevant log snippets
 
-- **💡 Questions**: [Start a discussion](https://github.com/your-org/cpc/discussions)
+- ** Questions**: [Start a discussion](https://github.com/your-org/cpc/discussions)
 
-- **📚 Documentation**: Check the [full documentation](../README.md)
+- ** Documentation**: Check the [full documentation](../README.md)
 
 ### Information to Include in Bug Reports
 
@@ -509,7 +509,7 @@ docker-compose logs --tail=100 postgres
 docker-compose exec postgres pg_isready
 ```
 
-## 🔧 Advanced Troubleshooting
+##  Advanced Troubleshooting
 
 ### Enable Debug Logging
 
@@ -568,4 +568,4 @@ curl http://localhost:8080/query -d '{"query": "{ hello }"}'
 
 ---
 
-**Still having issues?** Don't hesitate to [create an issue](https://github.com/your-org/cpc/issues) with detailed information about your problem. The community is here to help! 🤝
+**Still having issues?** Don't hesitate to [create an issue](https://github.com/your-org/cpc/issues) with detailed information about your problem. The community is here to help! 

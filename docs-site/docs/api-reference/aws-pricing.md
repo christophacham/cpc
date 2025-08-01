@@ -23,8 +23,8 @@ cp .env.example .env
 **Production-tested comprehensive extraction** supporting all major AWS services:
 
 ### **Core Compute & Storage (Proven Scale)**
-- **AmazonEC2**: ✅ **40,000+ pricing items** collected (production-verified)
-- **AmazonRDS**: ✅ **16,000+ pricing items** collected (production-verified)
+- **AmazonEC2**:  **40,000+ pricing items** collected (production-verified)
+- **AmazonRDS**:  **16,000+ pricing items** collected (production-verified)
 - **AmazonS3**: Complete storage pricing across all tiers
 - **AWSLambda**: Serverless compute pricing
 - **AmazonEBS**: Block storage pricing
@@ -123,7 +123,7 @@ curl -X POST http://localhost:8080/aws-populate-all \
 
 ### **EC2 - Comprehensive Coverage**
 
-**✅ Production-Verified**: **40,000+ pricing items** successfully collected
+** Production-Verified**: **40,000+ pricing items** successfully collected
 
 **Extraction Approach**: **No filters** - comprehensive "get everything out" approach
 - **All instance types**: From nano to metal, GPU to high-memory
@@ -154,7 +154,7 @@ curl -X POST http://localhost:8080/aws-populate-all \
 
 ### **RDS - Complete Database Coverage**
 
-**✅ Production-Verified**: **16,000+ pricing items** successfully collected
+** Production-Verified**: **16,000+ pricing items** successfully collected
 
 **Extraction Approach**: **Comprehensive extraction** across all database engines
 - **All engines**: MySQL, PostgreSQL, MariaDB, Oracle, SQL Server, Aurora
@@ -244,8 +244,8 @@ Common error scenarios:
 ### **Real-World Collection Performance**
 
 **Comprehensive Collection Scale**:
-- **EC2**: ✅ **40,000+ pricing items** (production-verified)
-- **RDS**: ✅ **16,000+ pricing items** (production-verified)
+- **EC2**:  **40,000+ pricing items** (production-verified)
+- **RDS**:  **16,000+ pricing items** (production-verified)
 - **Expected Total**: **500,000+ pricing items** for complete extraction
 
 **Collection Speed**:
@@ -270,11 +270,11 @@ Common error scenarios:
 ## Production Status
 
 ### **Current Capabilities (Fully Implemented)**
-- ✅ **60+ AWS services** supported
-- ✅ **Comprehensive extraction** with minimal filters  
-- ✅ **Production-scale performance** (500K+ records)
-- ✅ **Concurrent multi-service collection**
-- ✅ **Complete pagination handling** (100+ pages per service)
-- ✅ **Raw JSON preservation** for maximum flexibility
-- ✅ **Real-time progress tracking** with database updates
-- ✅ **Error resilience** with retry logic and graceful failures
+-  **60+ AWS services** supported
+-  **Comprehensive extraction** with minimal filters  
+-  **Production-scale performance** (500K+ records)
+-  **Concurrent multi-service collection**
+-  **Complete pagination handling** (100+ pages per service)
+-  **Raw JSON preservation** for maximum flexibility
+-  **Real-time progress tracking** with database updates
+-  **Error resilience** with retry logic and graceful failures

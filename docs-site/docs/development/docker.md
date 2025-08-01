@@ -94,7 +94,7 @@ docker-compose exec postgres psql -U cpc_user -d cpc_db
 docker exec cpc-postgres-1 pg_dump -U cpc_user cpc_db > backup.sql
 
 # Restore backup
-docker exec -i cpc-postgres-1 psql -U cpc_user -d cpc_db < backup.sql
+docker exec -i cpc-postgres-1 psql -U cpc_user -d cpc_db &lt; backup.sql
 ```
 
 ### Reset Database

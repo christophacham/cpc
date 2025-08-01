@@ -1,8 +1,8 @@
-# 🏗️ Architecture Overview
+# Architecture Overview
 
 This document provides a comprehensive overview of the Cloud Price Compare (CPC) architecture, designed for developers who want to understand how the system works.
 
-## 🎯 High-Level Architecture
+## High-Level Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -34,7 +34,7 @@ This document provides a comprehensive overview of the Cloud Price Compare (CPC)
                        └──────────────────┘
 ```
 
-## 📊 Core Components
+## Core Components
 
 ### 1. Data Ingestion Layer
 
@@ -217,7 +217,7 @@ CREATE TABLE normalized_regions (
 - Databases, Storage, AI & ML, Analytics & IoT
 - Virtual Desktop, Dev Tools, Integration, Migration, Management
 
-## 🔄 Data Flow
+## Data Flow
 
 ### Collection Flow
 
@@ -275,7 +275,7 @@ CREATE TABLE normalized_regions (
                             └─────────────┘ └─────────┘
 ```
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend
 - **Language**: Go 1.24+
@@ -315,16 +315,16 @@ CREATE TABLE normalized_regions (
   - Global region coverage
   - OData filtering support
 
-## 📊 Performance Characteristics
+## Performance Characteristics
 
 ### Scalability
 
 | Component | Current Capacity | Performance | Bottlenecks |
 |-----------|------------------|-------------|-------------|
-| **Data Collection** | 800K+ records | 100-500 rec/sec | API rate limits |
+| **Data Collection** | 800K+ records | 100-500 records/sec | API rate limits |
 | **Raw Storage** | Millions of records | Sub-second inserts | Disk I/O |
-| **ETL Pipeline** | 1K-2K rec/sec | Configurable workers | CPU & memory |
-| **GraphQL API** | <500ms queries | Concurrent requests | Database queries |
+| **ETL Pipeline** | 1K-2K records/sec | Configurable workers | CPU & memory |
+| **GraphQL API** | Fast queries | Concurrent requests | Database queries |
 
 ### Optimizations
 
@@ -346,7 +346,7 @@ CREATE TABLE normalized_regions (
 - Garbage collection optimization in Go
 - Connection pooling to limit resource usage
 
-## 🔒 Security & Reliability
+## Security & Reliability
 
 ### Data Security
 - **No sensitive data storage** - only public pricing information
@@ -367,7 +367,7 @@ CREATE TABLE normalized_regions (
 - **Performance metrics** (throughput, latency)
 - **Resource monitoring** (CPU, memory, disk)
 
-## 🔄 Extensibility
+## Extensibility
 
 ### Adding New Providers
 
@@ -393,7 +393,7 @@ CREATE TABLE normalized_regions (
 - **Load balancing**: Multiple API server instances
 - **Distributed ETL**: Kubernetes job processing
 
-## 📈 Future Architecture
+## Future Architecture
 
 ### Microservices Evolution
 
@@ -423,4 +423,4 @@ Current Monolith → Target Microservices Architecture
 
 ---
 
-This architecture provides a solid foundation for comprehensive cloud pricing data management while maintaining flexibility for future enhancements. The design prioritizes **data integrity**, **performance**, and **developer experience**. 🚀
+This architecture provides a solid foundation for comprehensive cloud pricing data management while maintaining flexibility for future enhancements. The design prioritizes **data integrity**, **performance**, and **developer experience**.
