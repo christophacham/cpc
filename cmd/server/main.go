@@ -231,9 +231,29 @@ func populateAllHandler(db *database.DB) http.HandlerFunc {
 // Simple GraphQL handler with raw data support
 func graphQLHandler(db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("GraphQL request: Method=%s, ContentLength=%d", r.Method, r.ContentLength)
+		
+		// GraphQL endpoints should only accept POST requests
+		if r.Method != "POST" {
+			http.Error(w, "GraphQL endpoint only accepts POST requests", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Check if request body is empty first
+		if r.ContentLength == 0 {
+			log.Printf("Detected empty ContentLength, returning friendly error")
+			http.Error(w, "Request body is empty. Please provide a GraphQL query in JSON format: {\"query\": \"{ hello }\"}", http.StatusBadRequest)
+			return
+		}
+		
 		var req graphQLRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			// Handle EOF (empty request body) specifically  
+			if err == io.EOF || err.Error() == "EOF" || strings.Contains(err.Error(), "EOF") {
+				http.Error(w, "Request body is empty. Please provide a GraphQL query in JSON format: {\"query\": \"{ hello }\"}", http.StatusBadRequest)
+			} else {
+				http.Error(w, "Invalid JSON in request body: "+err.Error(), http.StatusBadRequest)
+			}
 			return
 		}
 
@@ -647,6 +667,21 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
     </div>
     
     <div class="section">
+      <h3>🔄 ETL Pipeline & Normalization</h3>
+      <p><strong>Data Normalization:</strong></p>
+      <button class="populate-btn" onclick="startNormalization('NORMALIZE_ALL')" style="background: #9C27B0;">Normalize ALL Data</button>
+      <button class="populate-btn" onclick="startNormalization('NORMALIZE_PROVIDER', ['azure'])" style="background: #673AB7;">Normalize Azure Only</button>
+      <button class="populate-btn" onclick="startNormalization('NORMALIZE_PROVIDER', ['aws'])" style="background: #3F51B5;">Normalize AWS Only</button>
+      <br><br>
+      <p><strong>ETL Monitoring:</strong></p>
+      <button onclick="checkETLJobs()">Check ETL Job Status</button>
+      <button onclick="startETLMonitoring()">Start ETL Auto-Refresh (5s)</button>
+      <button onclick="stopETLMonitoring()">Stop ETL Auto-Refresh</button>
+      <br><br>
+      <p><em>Note: Normalization processes raw pricing data into a unified format for cross-provider comparisons. This may take 10-30 minutes depending on data volume.</em></p>
+    </div>
+    
+    <div class="section">
       <h3>Azure Population Endpoints</h3>
       <p><strong>Single Region Collection:</strong></p>
       <button class="populate-btn" onclick="populateData('eastus')">East US</button>
@@ -705,6 +740,8 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       <button onclick="loadSample('progress')">Load Azure Progress</button>
       <button onclick="loadSample('awsPricing')">Load AWS Pricing</button>
       <button onclick="loadSample('awsCollections')">Load AWS Collections</button>
+      <button onclick="loadSample('etlJobs')">Load ETL Jobs</button>
+      <button onclick="loadSample('normalizedData')">Load Normalized Data</button>
     </div>
     <div class="response" id="response">Execute a query or populate data to see results...</div>
   </div>
@@ -950,6 +987,153 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
       }
     }
 
+    // ETL Pipeline Functions
+    async function startNormalization(type, providers = []) {
+      try {
+        document.getElementById('response').textContent = 'Starting ' + type + ' normalization...';
+        
+        let mutation = '';
+        if (type === 'NORMALIZE_ALL') {
+          mutation = 'mutation {' +
+            '  startNormalization(config: {' +
+            '    type: NORMALIZE_ALL' +
+            '    batchSize: 1000' +
+            '    concurrentWorkers: 4' +
+            '    dryRun: false' +
+            '  }) {' +
+            '    id' +
+            '    status' +
+            '    config {' +
+            '      type' +
+            '      batchSize' +
+            '      concurrentWorkers' +
+            '    }' +
+            '  }' +
+            '}';
+        } else if (type === 'NORMALIZE_PROVIDER') {
+          const providerList = providers.map(p => '\\"' + p + '\\"').join(', ');
+          mutation = 'mutation {' +
+            '  startNormalization(config: {' +
+            '    type: NORMALIZE_PROVIDER' +
+            '    providers: [' + providerList + ']' +
+            '    batchSize: 1000' +
+            '    concurrentWorkers: 4' +
+            '    dryRun: false' +
+            '  }) {' +
+            '    id' +
+            '    status' +
+            '    config {' +
+            '      type' +
+            '      providers' +
+            '      batchSize' +
+            '      concurrentWorkers' +
+            '    }' +
+            '  }' +
+            '}';
+        }
+        
+        const response = await fetch('/query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: mutation }),
+        });
+        const data = await response.json();
+        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('response').textContent = 'ETL Error: ' + error.message;
+      }
+    }
+
+    let etlInterval = null;
+
+    async function checkETLJobs() {
+      try {
+        const query = '{ etlJobs { id status config { type providers batchSize concurrentWorkers } progress { processedRecords totalRecords rate errorRecords } error createdAt startedAt completedAt } }';
+        const response = await fetch('/query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query }),
+        });
+        const data = await response.json();
+        
+        if (data.data && data.data.etlJobs) {
+          const jobs = data.data.etlJobs;
+          const running = jobs.filter(j => j.status === 'RUNNING');
+          const completed = jobs.filter(j => j.status === 'COMPLETED');
+          const failed = jobs.filter(j => j.status === 'FAILED');
+          const pending = jobs.filter(j => j.status === 'PENDING');
+          
+          let statusText = 'ETL PIPELINE STATUS\\n\\n';
+          statusText += 'Running: ' + running.length + '\\n';
+          statusText += 'Pending: ' + pending.length + '\\n';
+          statusText += 'Completed: ' + completed.length + '\\n';
+          statusText += 'Failed: ' + failed.length + '\\n\\n';
+          
+          if (running.length > 0) {
+            statusText += 'CURRENTLY RUNNING:\\n';
+            running.forEach(j => {
+              const progress = j.progress || {};
+              const rate = progress.rate || 0;
+              const processed = progress.processedRecords || 0;
+              const total = progress.totalRecords || 0;
+              const percentage = total > 0 ? ((processed / total) * 100).toFixed(1) : '0';
+              statusText += '• Job ' + j.id.substring(0, 8) + ': ' + j.config.type + '\\n';
+              statusText += '  Progress: ' + processed + '/' + total + ' (' + percentage + '%)\\n';
+              statusText += '  Rate: ' + rate + ' records/sec\\n\\n';
+            });
+          }
+          
+          if (completed.length > 0) {
+            statusText += 'RECENTLY COMPLETED:\\n';
+            completed.slice(0, 3).forEach(j => {
+              const progress = j.progress || {};
+              statusText += '• Job ' + j.id.substring(0, 8) + ': ' + j.config.type + '\\n';
+              statusText += '  Processed: ' + (progress.processedRecords || 0) + ' records\\n';
+              if (j.completedAt && j.startedAt) {
+                const duration = new Date(j.completedAt) - new Date(j.startedAt);
+                statusText += '  Duration: ' + Math.round(duration / 1000) + ' seconds\\n';
+              }
+              statusText += '\\n';
+            });
+          }
+          
+          if (failed.length > 0) {
+            statusText += 'FAILED JOBS:\\n';
+            failed.slice(0, 2).forEach(j => {
+              statusText += '• Job ' + j.id.substring(0, 8) + ': ' + (j.error || 'Unknown error') + '\\n';
+            });
+          }
+          
+          document.getElementById('response').textContent = statusText;
+        } else {
+          document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+      } catch (error) {
+        document.getElementById('response').textContent = 'ETL status check error: ' + error.message;
+      }
+    }
+
+    function startETLMonitoring() {
+      if (etlInterval) {
+        clearInterval(etlInterval);
+      }
+      checkETLJobs(); // Check immediately
+      etlInterval = setInterval(checkETLJobs, 5000); // Every 5 seconds
+      document.getElementById('response').textContent += '\\n\\nETL auto-refresh started (every 5 seconds)...';
+    }
+
+    function stopETLMonitoring() {
+      if (etlInterval) {
+        clearInterval(etlInterval);
+        etlInterval = null;
+        document.getElementById('response').textContent += '\\n\\nETL auto-refresh stopped.';
+      }
+    }
+
     function loadSample(type) {
       const samples = {
         basic: '{\\n  hello\\n  azureRegions {\\n    name\\n  }\\n  azureServices {\\n    name\\n  }\\n}',
@@ -957,7 +1141,9 @@ func playgroundHandler(w http.ResponseWriter, r *http.Request) {
         collections: '{\\n  azureCollections {\\n    collectionId\\n    region\\n    status\\n    startedAt\\n    totalItems\\n    completedAt\\n    duration\\n    progress\\n    errorMessage\\n  }\\n}',
         progress: '{\\n  azureCollections {\\n    region\\n    status\\n    totalItems\\n    progress\\n  }\\n}',
         awsPricing: '{\\n  awsPricing {\\n    serviceCode\\n    serviceName\\n    location\\n    instanceType\\n    pricePerUnit\\n    unit\\n    currency\\n    termType\\n  }\\n}',
-        awsCollections: '{\\n  awsCollections {\\n    collectionId\\n    serviceCodes\\n    regions\\n    status\\n    startedAt\\n    totalItems\\n    completedAt\\n    duration\\n    errorMessage\\n  }\\n}'
+        awsCollections: '{\\n  awsCollections {\\n    collectionId\\n    serviceCodes\\n    regions\\n    status\\n    startedAt\\n    totalItems\\n    completedAt\\n    duration\\n    errorMessage\\n  }\\n}',
+        etlJobs: '{\\n  etlJobs {\\n    id\\n    status\\n    config {\\n      type\\n      providers\\n      batchSize\\n      concurrentWorkers\\n    }\\n    progress {\\n      processedRecords\\n      totalRecords\\n      rate\\n      errorRecords\\n    }\\n    error\\n    createdAt\\n    startedAt\\n    completedAt\\n  }\\n}',
+        normalizedData: '{\\n  normalizedPricing(limit: 10) {\\n    id\\n    provider\\n    serviceCategory\\n    serviceName\\n    region\\n    pricePerUnit\\n    unit\\n    currency\\n    pricingModel\\n    specifications\\n    lastUpdated\\n  }\\n}'
       };
       document.getElementById('query').value = samples[type] || samples.basic;
     }
