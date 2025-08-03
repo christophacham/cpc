@@ -66,14 +66,14 @@ func (r *mutationResolver) StartNormalization(ctx context.Context, config Normal
 	if config.DryRun != nil {
 		etlConfig.DryRun = *config.DryRun
 	}
-	if config.Providers != nil {
-		etlConfig.Providers = *config.Providers
+	if len(config.Providers) > 0 {
+		etlConfig.Providers = config.Providers
 	}
-	if config.Regions != nil {
-		etlConfig.Regions = *config.Regions
+	if len(config.Regions) > 0 {
+		etlConfig.Regions = config.Regions
 	}
-	if config.Services != nil {
-		etlConfig.Services = *config.Services
+	if len(config.Services) > 0 {
+		etlConfig.Services = config.Services
 	}
 	
 	// Convert job type
@@ -209,68 +209,4 @@ func convertJobStatusToGraphQL(status etl.JobStatus) ETLJobStatus {
 	}
 }
 
-// GraphQL types for ETL functionality (these would normally be generated)
-
-type ETLJob struct {
-	ID            string                  `json:"id"`
-	Type          ETLJobType             `json:"type"`
-	Provider      *string                `json:"provider,omitempty"`
-	Status        ETLJobStatus           `json:"status"`
-	Progress      *ETLJobProgress        `json:"progress,omitempty"`
-	StartedAt     string                 `json:"startedAt"`
-	CompletedAt   *string                `json:"completedAt,omitempty"`
-	Error         *string                `json:"error,omitempty"`
-	Configuration *ETLJobConfiguration   `json:"configuration"`
-}
-
-type ETLJobProgress struct {
-	TotalRecords      int     `json:"totalRecords"`
-	ProcessedRecords  int     `json:"processedRecords"`
-	NormalizedRecords int     `json:"normalizedRecords"`
-	SkippedRecords    int     `json:"skippedRecords"`
-	ErrorRecords      int     `json:"errorRecords"`
-	CurrentStage      string  `json:"currentStage"`
-	LastUpdated       string  `json:"lastUpdated"`
-	Rate              float64 `json:"rate"`
-}
-
-type ETLJobConfiguration struct {
-	Providers         []string `json:"providers,omitempty"`
-	Regions           []string `json:"regions,omitempty"`
-	Services          []string `json:"services,omitempty"`
-	BatchSize         int      `json:"batchSize"`
-	ConcurrentWorkers int      `json:"concurrentWorkers"`
-	ClearExisting     bool     `json:"clearExisting"`
-	DryRun            bool     `json:"dryRun"`
-}
-
-type ETLJobType string
-
-const (
-	ETLJobTypeNormalizeAll       ETLJobType = "NORMALIZE_ALL"
-	ETLJobTypeNormalizeProvider  ETLJobType = "NORMALIZE_PROVIDER"
-	ETLJobTypeNormalizeRegion    ETLJobType = "NORMALIZE_REGION"
-	ETLJobTypeNormalizeService   ETLJobType = "NORMALIZE_SERVICE"
-	ETLJobTypeCleanupNormalized  ETLJobType = "CLEANUP_NORMALIZED"
-)
-
-type ETLJobStatus string
-
-const (
-	ETLJobStatusPending    ETLJobStatus = "PENDING"
-	ETLJobStatusRunning    ETLJobStatus = "RUNNING"
-	ETLJobStatusCompleted  ETLJobStatus = "COMPLETED"
-	ETLJobStatusFailed     ETLJobStatus = "FAILED"
-	ETLJobStatusCancelled  ETLJobStatus = "CANCELLED"
-)
-
-type NormalizationConfigInput struct {
-	Type              ETLJobType `json:"type"`
-	Providers         *[]string  `json:"providers,omitempty"`
-	Regions           *[]string  `json:"regions,omitempty"`
-	Services          *[]string  `json:"services,omitempty"`
-	BatchSize         *int       `json:"batchSize,omitempty"`
-	ConcurrentWorkers *int       `json:"concurrentWorkers,omitempty"`
-	ClearExisting     *bool      `json:"clearExisting,omitempty"`
-	DryRun            *bool      `json:"dryRun,omitempty"`
-}
+// GraphQL types for ETL functionality are now auto-generated in models_gen.go

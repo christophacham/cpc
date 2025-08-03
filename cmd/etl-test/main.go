@@ -37,12 +37,13 @@ func main() {
 		log.Fatalf("Failed to create ETL pipeline: %v", err)
 	}
 
-	// Test job configuration
+	// Test job configuration - Azure only for Storage/Networking
 	config := etl.JobConfiguration{
 		Providers:         []string{"azure"},
+		Services:          []string{"Storage", "Bandwidth", "Azure NetApp Files", "Backup"},
 		BatchSize:         100,
 		ConcurrentWorkers: 2,
-		DryRun:            true, // Don't actually insert data
+		DryRun:            false, // Actually insert normalized data
 	}
 
 	fmt.Println("🚀 Starting ETL test job...")

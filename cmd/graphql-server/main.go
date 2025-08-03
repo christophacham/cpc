@@ -12,7 +12,6 @@ import (
 	"github.com/raulc0399/cpc/internal/database"
 	"github.com/raulc0399/cpc/internal/etl"
 	"github.com/raulc0399/cpc/internal/graph"
-	"github.com/raulc0399/cpc/internal/graph/generated"
 )
 
 const defaultPort = "8080"
@@ -46,7 +45,7 @@ func main() {
 	resolver.SetPipeline(pipeline)
 
 	// Create GraphQL server with introspection enabled
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
 	// Set up routes
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))

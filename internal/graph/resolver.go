@@ -122,10 +122,8 @@ func (r *mutationResolver) CreateMessage(ctx context.Context, content string) (*
 	}, nil
 }
 
-// AWS Provider Implementation
-type AWSProvider struct {
-	resolver *Resolver
-}
+// AWS Provider Implementation - methods for auto-generated types
+// The AWSProvider, AWSCompute, etc. types are auto-generated in models_gen.go
 
 func (p *AWSProvider) Compute(ctx context.Context, region string) (*AWSCompute, error) {
 	return &AWSCompute{resolver: p.resolver, region: region}, nil
@@ -139,14 +137,14 @@ func (p *AWSProvider) DataTransfer(ctx context.Context, region string) (*AWSData
 	return &AWSDataTransfer{resolver: p.resolver, region: region}, nil
 }
 
-// AWS Compute Implementation
-type AWSCompute struct {
-	resolver *Resolver
-	region   string
-}
-
 func (c *AWSCompute) InstancePrice(ctx context.Context, instanceType string) (float64, error) {
-	// Query normalized pricing data for AWS EC2 instances
+	// First try to get from raw data
+	price, err := c.getInstancePriceFromRaw(ctx, instanceType)
+	if err == nil {
+		return price, nil
+	}
+
+	// If not found in raw data, try normalized data
 	filter := database.PricingFilter{
 		Provider:         &[]string{database.ProviderAWS}[0],
 		ServiceCategory:  &[]string{database.CategoryComputeWeb}[0],
@@ -156,18 +154,16 @@ func (c *AWSCompute) InstancePrice(ctx context.Context, instanceType string) (fl
 	}
 
 	pricings, err := c.resolver.DB.QueryNormalizedPricing(filter)
-	if err != nil {
-		return 0.0, fmt.Errorf("failed to query AWS instance pricing: %w", err)
-	}
-
-	// Find matching instance type
-	for _, pricing := range pricings {
-		if strings.Contains(strings.ToLower(pricing.ResourceName), strings.ToLower(instanceType)) {
-			return pricing.PricePerUnit, nil
+	if err == nil {
+		// Find matching instance type
+		for _, pricing := range pricings {
+			if strings.Contains(strings.ToLower(pricing.ResourceName), strings.ToLower(instanceType)) {
+				return pricing.PricePerUnit, nil
+			}
 		}
 	}
 
-	// If not found in normalized data, return static fallback
+	// If not found in either, return static fallback
 	return getAWSInstancePricing(instanceType), nil
 }
 
@@ -203,12 +199,16 @@ func (c *AWSCompute) Instances(ctx context.Context) ([]*AWSInstance, error) {
 }
 
 // AWS Storage Implementation
-type AWSStorage struct {
-	resolver *Resolver
-	region   string
-}
+// AWSStorage methods for auto-generated type
 
 func (s *AWSStorage) PricePerGb(ctx context.Context, tier string) (float64, error) {
+	// First try to get from raw data
+	price, err := s.getStoragePriceFromRaw(ctx, tier)
+	if err == nil {
+		return price, nil
+	}
+
+	// If not found in raw data, try normalized data
 	filter := database.PricingFilter{
 		Provider:         &[]string{database.ProviderAWS}[0],
 		ServiceCategory:  &[]string{database.CategoryStorage}[0],
@@ -218,14 +218,12 @@ func (s *AWSStorage) PricePerGb(ctx context.Context, tier string) (float64, erro
 	}
 
 	pricings, err := s.resolver.DB.QueryNormalizedPricing(filter)
-	if err != nil {
-		return 0.0, fmt.Errorf("failed to query AWS storage pricing: %w", err)
-	}
-
-	// Find matching storage tier
-	for _, pricing := range pricings {
-		if strings.Contains(strings.ToLower(pricing.ResourceName), strings.ToLower(tier)) {
-			return pricing.PricePerUnit, nil
+	if err == nil {
+		// Find matching storage tier
+		for _, pricing := range pricings {
+			if strings.Contains(strings.ToLower(pricing.ResourceName), strings.ToLower(tier)) {
+				return pricing.PricePerUnit, nil
+			}
 		}
 	}
 
@@ -242,10 +240,7 @@ func (s *AWSStorage) Tiers(ctx context.Context) ([]*AWSStorageTier, error) {
 }
 
 // AWS Data Transfer Implementation
-type AWSDataTransfer struct {
-	resolver *Resolver
-	region   string
-}
+// AWSDataTransfer methods for auto-generated type
 
 func (dt *AWSDataTransfer) PricePerGb(ctx context.Context, direction string) (float64, error) {
 	if direction == "in" {
@@ -263,9 +258,7 @@ func (dt *AWSDataTransfer) Outbound(ctx context.Context) (float64, error) {
 }
 
 // Azure Provider Implementation
-type AzureProvider struct {
-	resolver *Resolver
-}
+// AzureProvider methods for auto-generated type
 
 func (p *AzureProvider) Compute(ctx context.Context, region string) (*AzureCompute, error) {
 	return &AzureCompute{resolver: p.resolver, region: region}, nil
@@ -280,12 +273,16 @@ func (p *AzureProvider) DataTransfer(ctx context.Context, region string) (*Azure
 }
 
 // Azure Compute Implementation
-type AzureCompute struct {
-	resolver *Resolver
-	region   string
-}
+// AzureCompute methods for auto-generated type
 
 func (c *AzureCompute) VmPrice(ctx context.Context, size string) (float64, error) {
+	// First try to get from raw data
+	price, err := c.getVMPriceFromRaw(ctx, size)
+	if err == nil {
+		return price, nil
+	}
+
+	// If not found in raw data, try normalized data
 	filter := database.PricingFilter{
 		Provider:         &[]string{database.ProviderAzure}[0],
 		ServiceCategory:  &[]string{database.CategoryComputeWeb}[0],
@@ -295,14 +292,12 @@ func (c *AzureCompute) VmPrice(ctx context.Context, size string) (float64, error
 	}
 
 	pricings, err := c.resolver.DB.QueryNormalizedPricing(filter)
-	if err != nil {
-		return 0.0, fmt.Errorf("failed to query Azure VM pricing: %w", err)
-	}
-
-	// Find matching VM size
-	for _, pricing := range pricings {
-		if strings.Contains(strings.ToLower(pricing.ResourceName), strings.ToLower(size)) {
-			return pricing.PricePerUnit, nil
+	if err == nil {
+		// Find matching VM size
+		for _, pricing := range pricings {
+			if strings.Contains(strings.ToLower(pricing.ResourceName), strings.ToLower(size)) {
+				return pricing.PricePerUnit, nil
+			}
 		}
 	}
 
@@ -340,12 +335,16 @@ func (c *AzureCompute) Vms(ctx context.Context) ([]*AzureVM, error) {
 }
 
 // Azure Storage Implementation
-type AzureStorage struct {
-	resolver *Resolver
-	region   string
-}
+// AzureStorage methods for auto-generated type
 
 func (s *AzureStorage) PricePerGb(ctx context.Context, tier string) (float64, error) {
+	// First try to get from raw data
+	price, err := s.getStoragePriceFromRaw(ctx, tier)
+	if err == nil {
+		return price, nil
+	}
+
+	// If not found in raw data, try normalized data
 	filter := database.PricingFilter{
 		Provider:         &[]string{database.ProviderAzure}[0],
 		ServiceCategory:  &[]string{database.CategoryStorage}[0],
@@ -355,13 +354,11 @@ func (s *AzureStorage) PricePerGb(ctx context.Context, tier string) (float64, er
 	}
 
 	pricings, err := s.resolver.DB.QueryNormalizedPricing(filter)
-	if err != nil {
-		return 0.0, fmt.Errorf("failed to query Azure storage pricing: %w", err)
-	}
-
-	for _, pricing := range pricings {
-		if strings.Contains(strings.ToLower(pricing.ResourceName), strings.ToLower(tier)) {
-			return pricing.PricePerUnit, nil
+	if err == nil {
+		for _, pricing := range pricings {
+			if strings.Contains(strings.ToLower(pricing.ResourceName), strings.ToLower(tier)) {
+				return pricing.PricePerUnit, nil
+			}
 		}
 	}
 
@@ -377,10 +374,7 @@ func (s *AzureStorage) Tiers(ctx context.Context) ([]*AzureStorageTier, error) {
 }
 
 // Azure Data Transfer Implementation
-type AzureDataTransfer struct {
-	resolver *Resolver
-	region   string
-}
+// AzureDataTransfer methods for auto-generated type
 
 func (dt *AzureDataTransfer) PricePerGb(ctx context.Context, direction string) (float64, error) {
 	if direction == "in" {

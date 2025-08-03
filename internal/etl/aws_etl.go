@@ -66,7 +66,7 @@ func (p *Pipeline) getAWSRawDataCount(ctx context.Context, config JobConfigurati
 			placeholders[i] = fmt.Sprintf("$%d", len(args)+1)
 			args = append(args, region)
 		}
-		query += fmt.Sprintf(" AND region IN (%s)", strings.Join(placeholders, ","))
+		query += fmt.Sprintf(" AND location IN (%s)", strings.Join(placeholders, ","))
 	}
 	
 	if len(config.Services) > 0 {
@@ -163,7 +163,7 @@ type AWSRawRecord struct {
 	ID           int
 	ServiceCode  string
 	ServiceName  string  
-	Region       string
+	Location     string
 	Data         json.RawMessage
 	CollectionID string
 }
@@ -171,7 +171,7 @@ type AWSRawRecord struct {
 // getAWSBatch retrieves a batch of AWS raw pricing data
 func (p *Pipeline) getAWSBatch(ctx context.Context, config JobConfiguration, offset, limit int) (*AWSBatch, error) {
 	query := `
-		SELECT id, service_code, service_name, region, data, collection_id 
+		SELECT id, service_code, service_name, location, data, collection_id 
 		FROM aws_pricing_raw 
 		WHERE 1=1`
 	args := []interface{}{}
@@ -183,7 +183,7 @@ func (p *Pipeline) getAWSBatch(ctx context.Context, config JobConfiguration, off
 			placeholders[i] = fmt.Sprintf("$%d", len(args)+1)
 			args = append(args, region)
 		}
-		query += fmt.Sprintf(" AND region IN (%s)", strings.Join(placeholders, ","))
+		query += fmt.Sprintf(" AND location IN (%s)", strings.Join(placeholders, ","))
 	}
 	
 	if len(config.Services) > 0 {
@@ -211,7 +211,7 @@ func (p *Pipeline) getAWSBatch(ctx context.Context, config JobConfiguration, off
 			&record.ID,
 			&record.ServiceCode,
 			&record.ServiceName,
-			&record.Region,
+			&record.Location,
 			&record.Data,
 			&record.CollectionID,
 		)
@@ -263,7 +263,7 @@ func (p *Pipeline) processAWSBatch(job *Job, batch *AWSBatch) *BatchResult {
 		input := database.NormalizationInput{
 			Provider:     database.ProviderAWS,
 			ServiceCode:  record.ServiceCode,
-			Region:       record.Region,
+			Region:       record.Location,
 			RawData:      record.Data,
 			RawDataID:    record.ID,
 			CollectionID: record.CollectionID,

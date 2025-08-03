@@ -16,6 +16,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/raulc0399/cpc/internal/database"
+	"github.com/raulc0399/cpc/internal/optimization"
 )
 
 // GraphQL request structure
@@ -91,6 +92,9 @@ func main() {
 		port = "8080"
 	}
 
+	// Create region optimizer
+	regionOptimizer := optimization.NewRegionOptimizer(db)
+
 	// Set up routes
 	http.HandleFunc("/", playgroundHandler)
 	http.HandleFunc("/query", graphQLHandler(dbHandler))
@@ -100,6 +104,10 @@ func main() {
 	http.HandleFunc("/aws-populate-all", awsPopulateAllHandler(dbHandler))
 	http.HandleFunc("/aws-populate-comprehensive", awsPopulateComprehensiveHandler(dbHandler))
 	http.HandleFunc("/aws-populate-everything", awsPopulateEverythingHandler(dbHandler))
+	
+	// Region optimization endpoints
+	http.HandleFunc("/optimize-regions", optimizeRegionsHandler(regionOptimizer))
+	http.HandleFunc("/compare-regions", compareRegionsHandler(regionOptimizer))
 
 	log.Printf("Starting server on http://localhost:%s/", port)
 	log.Printf("GraphQL playground available at http://localhost:%s/", port)
@@ -1646,5 +1654,69 @@ func awsPopulateEverythingHandler(db *database.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
+	}
+}
+
+// optimizeRegionsHandler handles region optimization requests
+func optimizeRegionsHandler(optimizer *optimization.RegionOptimizer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var workload optimization.WorkloadProfile
+		if err := json.NewDecoder(r.Body).Decode(&workload); err != nil {
+			http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+		results, err := optimizer.OptimizeRegions(ctx, workload)
+		if err != nil {
+			log.Printf("Region optimization error: %v", err)
+			http.Error(w, "Optimization failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"results": results,
+		})
+	}
+}
+
+// compareRegionsHandler handles region comparison requests
+func compareRegionsHandler(optimizer *optimization.RegionOptimizer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var request struct {
+			Workload optimization.WorkloadProfile     `json:"workload"`
+			Regions  []optimization.RegionInput       `json:"regions"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+		results, err := optimizer.CompareRegions(ctx, request.Workload, request.Regions)
+		if err != nil {
+			log.Printf("Region comparison error: %v", err)
+			http.Error(w, "Comparison failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"results": results,
+		})
 	}
 }

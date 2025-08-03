@@ -11,6 +11,10 @@ type Query {
   # ETL Queries
   etlJob(id: ID!): ETLJob
   etlJobs: [ETLJob!]!
+  
+  # Region Optimization Queries
+  optimizeRegions(workload: WorkloadInput!): [RegionOptimization!]!
+  compareRegions(workload: WorkloadInput!, regions: [RegionInput!]!): [RegionComparison!]!
 }
 
 type Mutation {
@@ -175,4 +179,43 @@ type AzureDataTransfer {
   pricePerGB(direction: String!): Float!
   inbound: Float!
   outbound: Float!
+}
+
+# Region Optimization Types
+type RegionOptimization {
+  provider: String!
+  region: String!
+  regionName: String!
+  monthlyCost: Float!
+  computeCost: Float!
+  storageCost: Float!
+  egressCost: Float!
+  recommendations: [String!]!
+}
+
+type RegionComparison {
+  provider: String!
+  region: String!
+  regionName: String!
+  monthlyCost: Float!
+  computeCost: Float!
+  storageCost: Float!
+  egressCost: Float!
+  savingsPercent: Float!
+  bestFor: [String!]!
+}
+
+input WorkloadInput {
+  computeHours: Float!
+  storageGB: Float!
+  egressGB: Float!
+  cpuCount: Int
+  gpuCount: Int
+  providers: [String!]
+  geography: String
+}
+
+input RegionInput {
+  provider: String!
+  region: String!
 }

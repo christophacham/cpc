@@ -3,10 +3,85 @@
 package graph
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
 )
+
+type AWSCompute struct {
+	InstancePrice float64        `json:"instancePrice"`
+	Instances     []*AWSInstance `json:"instances"`
+}
+
+type AWSDataTransfer struct {
+	PricePerGb float64 `json:"pricePerGB"`
+	Inbound    float64 `json:"inbound"`
+	Outbound   float64 `json:"outbound"`
+}
+
+type AWSInstance struct {
+	Type         string  `json:"type"`
+	Vcpu         int     `json:"vcpu"`
+	MemoryGb     float64 `json:"memoryGB"`
+	PricePerHour float64 `json:"pricePerHour"`
+	Architecture *string `json:"architecture,omitempty"`
+	Burstable    *bool   `json:"burstable,omitempty"`
+}
+
+type AWSProvider struct {
+	Compute      *AWSCompute      `json:"compute"`
+	Storage      *AWSStorage      `json:"storage"`
+	DataTransfer *AWSDataTransfer `json:"dataTransfer"`
+}
+
+type AWSStorage struct {
+	PricePerGb float64           `json:"pricePerGB"`
+	Tiers      []*AWSStorageTier `json:"tiers"`
+}
+
+type AWSStorageTier struct {
+	Name        string  `json:"name"`
+	PricePerGb  float64 `json:"pricePerGB"`
+	Description *string `json:"description,omitempty"`
+}
+
+type AzureCompute struct {
+	VMPrice float64    `json:"vmPrice"`
+	Vms     []*AzureVM `json:"vms"`
+}
+
+type AzureDataTransfer struct {
+	PricePerGb float64 `json:"pricePerGB"`
+	Inbound    float64 `json:"inbound"`
+	Outbound   float64 `json:"outbound"`
+}
+
+type AzureProvider struct {
+	Compute      *AzureCompute      `json:"compute"`
+	Storage      *AzureStorage      `json:"storage"`
+	DataTransfer *AzureDataTransfer `json:"dataTransfer"`
+}
+
+type AzureStorage struct {
+	PricePerGb float64             `json:"pricePerGB"`
+	Tiers      []*AzureStorageTier `json:"tiers"`
+}
+
+type AzureStorageTier struct {
+	Name        string  `json:"name"`
+	PricePerGb  float64 `json:"pricePerGB"`
+	Description *string `json:"description,omitempty"`
+}
+
+type AzureVM struct {
+	Size         string  `json:"size"`
+	Vcpu         int     `json:"vcpu"`
+	MemoryGb     float64 `json:"memoryGB"`
+	PricePerHour float64 `json:"pricePerHour"`
+	Architecture *string `json:"architecture,omitempty"`
+	Burstable    *bool   `json:"burstable,omitempty"`
+}
 
 type Category struct {
 	ID          string  `json:"id"`
@@ -77,6 +152,44 @@ type Provider struct {
 type Query struct {
 }
 
+type RegionComparison struct {
+	Provider       string   `json:"provider"`
+	Region         string   `json:"region"`
+	RegionName     string   `json:"regionName"`
+	MonthlyCost    float64  `json:"monthlyCost"`
+	ComputeCost    float64  `json:"computeCost"`
+	StorageCost    float64  `json:"storageCost"`
+	EgressCost     float64  `json:"egressCost"`
+	SavingsPercent float64  `json:"savingsPercent"`
+	BestFor        []string `json:"bestFor"`
+}
+
+type RegionInput struct {
+	Provider string `json:"provider"`
+	Region   string `json:"region"`
+}
+
+type RegionOptimization struct {
+	Provider        string   `json:"provider"`
+	Region          string   `json:"region"`
+	RegionName      string   `json:"regionName"`
+	MonthlyCost     float64  `json:"monthlyCost"`
+	ComputeCost     float64  `json:"computeCost"`
+	StorageCost     float64  `json:"storageCost"`
+	EgressCost      float64  `json:"egressCost"`
+	Recommendations []string `json:"recommendations"`
+}
+
+type WorkloadInput struct {
+	ComputeHours float64  `json:"computeHours"`
+	StorageGb    float64  `json:"storageGB"`
+	EgressGb     float64  `json:"egressGB"`
+	CPUCount     *int     `json:"cpuCount,omitempty"`
+	GpuCount     *int     `json:"gpuCount,omitempty"`
+	Providers    []string `json:"providers,omitempty"`
+	Geography    *string  `json:"geography,omitempty"`
+}
+
 type ETLJobStatus string
 
 const (
@@ -107,7 +220,7 @@ func (e ETLJobStatus) String() string {
 	return string(e)
 }
 
-func (e *ETLJobStatus) UnmarshalGQL(v interface{}) error {
+func (e *ETLJobStatus) UnmarshalGQL(v any) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
@@ -122,6 +235,20 @@ func (e *ETLJobStatus) UnmarshalGQL(v interface{}) error {
 
 func (e ETLJobStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ETLJobStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ETLJobStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type ETLJobType string
@@ -154,7 +281,7 @@ func (e ETLJobType) String() string {
 	return string(e)
 }
 
-func (e *ETLJobType) UnmarshalGQL(v interface{}) error {
+func (e *ETLJobType) UnmarshalGQL(v any) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
@@ -171,72 +298,16 @@ func (e ETLJobType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-// AWS Provider Types
-type AWSProvider struct {
-	resolver *Resolver
+func (e *ETLJobType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
 }
 
-type AWSCompute struct {
-	resolver *Resolver
-	region   string
-}
-
-type AWSInstance struct {
-	Type         string   `json:"type"`
-	Vcpu         int      `json:"vcpu"`
-	MemoryGb     float64  `json:"memoryGb"`
-	PricePerHour float64  `json:"pricePerHour"`
-	Architecture *string  `json:"architecture,omitempty"`
-	Burstable    *bool    `json:"burstable,omitempty"`
-}
-
-type AWSStorage struct {
-	resolver *Resolver
-	region   string
-}
-
-type AWSStorageTier struct {
-	Name        string  `json:"name"`
-	PricePerGb  float64 `json:"pricePerGb"`
-	Description *string `json:"description,omitempty"`
-}
-
-type AWSDataTransfer struct {
-	resolver *Resolver
-	region   string
-}
-
-// Azure Provider Types
-type AzureProvider struct {
-	resolver *Resolver
-}
-
-type AzureCompute struct {
-	resolver *Resolver
-	region   string
-}
-
-type AzureVM struct {
-	Size         string   `json:"size"`
-	Vcpu         int      `json:"vcpu"`
-	MemoryGb     float64  `json:"memoryGb"`
-	PricePerHour float64  `json:"pricePerHour"`
-	Architecture *string  `json:"architecture,omitempty"`
-	Burstable    *bool    `json:"burstable,omitempty"`
-}
-
-type AzureStorage struct {
-	resolver *Resolver
-	region   string
-}
-
-type AzureStorageTier struct {
-	Name        string  `json:"name"`
-	PricePerGb  float64 `json:"pricePerGb"`
-	Description *string `json:"description,omitempty"`
-}
-
-type AzureDataTransfer struct {
-	resolver *Resolver
-	region   string
+func (e ETLJobType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
