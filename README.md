@@ -62,6 +62,32 @@ docker-compose up -d
 # Database: localhost:5432 (postgres/password)
 ```
 
+## 🔌 Port Configuration & Funky Integration
+
+### **CPC Port Assignments**
+
+| Service | Port | Purpose | Integration |
+|---------|------|---------|-------------|
+| **GraphQL API** | 8080 | Main CPC backend API | ← Funky connects here |
+| **Documentation** | 3000 | Docusaurus docs site | Independent |
+| **PostgreSQL** | 5432 | Pricing database | ← Funky pricing API connects |
+
+### **Funky Integration Points**
+
+```
+┌─────────────────┐    ┌─────────────────┐
+│   Funky App     │    │   CPC Backend   │
+│                 │    │                 │
+│ :8501/8502/8503 │    │ GraphQL API     │
+│ (Streamlit)     │◄──►│ :8080          │
+│                 │    │                 │
+│ Pricing API     │    │ PostgreSQL      │
+│ :8082           │◄──►│ :5432          │
+└─────────────────┘    └─────────────────┘
+```
+
+**✅ Clean Separation**: CPC uses 8080, 3000, 5432 / Funky uses 8501-8503, 8082, 8888
+
 ### 🔑 AWS Setup (Optional)
 
 For AWS data collection, add your credentials:
