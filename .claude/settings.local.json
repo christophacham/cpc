@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(go mod init:*)",
@@ -25,7 +26,17 @@
       "Bash(go run:*)",
       "Bash(go get:*)",
       "Bash(sed:*)",
-      "Bash(dd:*)"
+      "Bash(dd:*)",
+      "Bash(python test_graphql_integration.py)",
+      "Bash(pkill:*)",
+      "Bash(rm:*)",
+      "Bash(DATABASE_URL=\"postgres://cpc_user:cpc_password@localhost:5432/cpc_db?sslmode=disable\" go run cmd/etl-test/main.go)",
+      "Bash(python3:*)",
+      "Bash(DATABASE_URL=\"postgres://cpc_user:cpc_password@localhost:5432/cpc_db?sslmode=disable\" go run cmd/etl-test/main.go aws)",
+      "Bash(DATABASE_URL=\"postgres://cpc_user:cpc_password@localhost:5432/cpc_db?sslmode=disable\" go run cmd/graphql-server/main.go)",
+      "Bash(DATABASE_URL=\"postgres://cpc_user:cpc_password@localhost:5432/cpc_db?sslmode=disable\" go run cmd/test-normalization/main.go)",
+      "Bash(python:*)",
+      "Bash(pip install:*)"
     ],
     "deny": []
   }
