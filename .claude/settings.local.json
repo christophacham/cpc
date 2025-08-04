@@ -36,7 +36,12 @@
       "Bash(DATABASE_URL=\"postgres://cpc_user:cpc_password@localhost:5432/cpc_db?sslmode=disable\" go run cmd/graphql-server/main.go)",
       "Bash(DATABASE_URL=\"postgres://cpc_user:cpc_password@localhost:5432/cpc_db?sslmode=disable\" go run cmd/test-normalization/main.go)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(kill:*)",
+      "Bash(echo)",
+      "Bash(__NEW_LINE__ echo)",
+      "Bash(timeout:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }
