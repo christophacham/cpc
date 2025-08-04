@@ -488,7 +488,7 @@ watch -n 10 'docker-compose exec postgres psql -U postgres -d cpc -c "SELECT cou
 
 - ** Questions**: [Start a discussion](https://github.com/your-org/cpc/discussions)
 
-- ** Documentation**: Check the [full documentation](../README.md)
+- ** Documentation**: Check the [full documentation](https://github.com/your-org/cpc/blob/main/README.md)
 
 ### Information to Include in Bug Reports
 

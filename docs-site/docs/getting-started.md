@@ -199,7 +199,7 @@ go test ./...
 - **[Database Schema](architecture/database.md)** - Data storage design
 
 ###  Contribute
-- **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute
+- **[Contributing Guide](https://github.com/your-org/cpc/blob/main/CONTRIBUTING.md)** - How to contribute
 - **[Development Workflow](development/workflow.md)** - Detailed development guide
 
 ###  Use Cases

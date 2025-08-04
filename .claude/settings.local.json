@@ -41,7 +41,9 @@
       "Bash(echo)",
       "Bash(__NEW_LINE__ echo)",
       "Bash(timeout:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(git checkout:*)",
+      "Bash(echo:*)"
     ],
     "deny": []
   }

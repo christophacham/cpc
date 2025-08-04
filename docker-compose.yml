@@ -30,6 +30,7 @@ services:
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
     ports:
       - "8080:8080"
+      - "8082:8082"
     depends_on:
       postgres:
         condition: service_healthy
