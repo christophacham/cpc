@@ -92,6 +92,32 @@ type ExplorerConfig struct {
 - V2 implementations have complete feature parity
 - ETL pipeline already standardized on V2
 
+## Documentation Dependencies Audit
+
+### FILES WITH COLLECTOR REFERENCES
+**High Impact Documentation:**
+- `/README.md` - References azure-raw-collector and azure-all-regions
+- `/CONTRIBUTING.md` - References azure-collector for examples
+- `/docs-site/docs/architecture/data-collection.md` - Documents all collector usage
+- `/docs-site/docs/development/testing.md` - Includes collector test commands
+- `/docs-site/docs/development/setup.md` - Setup instructions with collectors
+
+**Referenced Commands in Documentation:**
+- `go run cmd/azure-raw-collector/main.go eastus`
+- `go run cmd/azure-all-regions/main.go 3`
+- `go run cmd/azure-collector/main.go`
+- `go run cmd/azure-explorer/main.go`
+- `go run cmd/azure-full-collector/main.go`
+- `go run cmd/azure-db-collector/main.go`
+
+### DOCUMENTATION UPDATE REQUIREMENTS
+**Critical Updates Needed:**
+- Update all README examples to use consolidated collectors
+- Revise data-collection.md architecture documentation
+- Update testing.md with new collector commands
+- Modify setup.md to reflect simplified structure
+- Update CONTRIBUTING.md examples
+
 ## Impact Assessment
 
 **Complexity Reduction:**
