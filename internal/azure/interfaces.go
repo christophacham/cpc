@@ -1,6 +1,9 @@
 package azure
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // RegionHandler defines the interface for region-based data collection
 type RegionHandler interface {
