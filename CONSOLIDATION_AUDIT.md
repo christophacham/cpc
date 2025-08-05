@@ -61,10 +61,42 @@ type ExplorerConfig struct {
    - Features: Collection monitoring, data cleanup, health checks
    - Purpose: Operational tasks not covered by existing collectors
 
+## Normalizer Version Audit
+
+### PRODUCTION STATUS
+**Current ETL Pipeline Uses:** V2 normalizers only
+- `NewAWSNormalizerV2()` - /internal/etl/pipeline.go:99
+- `NewAzureNormalizerV2()` - /internal/etl/pipeline.go:107
+
+**Legacy Normalizers Status:**
+- `aws_normalizer.go` - **UNUSED** (only self-referencing constructor)
+- `aws_normalizer_refactored.go` - **UNUSED** (no references found)
+- `azure_normalizer.go` - **UNUSED** (no references found)
+
+### ARCHITECTURAL DIFFERENCES
+
+**Legacy vs V2 Design:**
+- **Legacy**: Direct database dependency, monolithic structure
+- **V2**: Interface-driven with BaseNormalizer, repository pattern, better separation of concerns
+
+**V2 Improvements:**
+- Repository pattern for data access
+- Input validation layer
+- Unit normalization abstraction
+- Logger interface for testing
+- Resource spec extraction pattern
+
+### CONSOLIDATION RECOMMENDATION
+**Safe to Remove:** All legacy normalizer files
+- No production code references found
+- V2 implementations have complete feature parity
+- ETL pipeline already standardized on V2
+
 ## Impact Assessment
 
 **Complexity Reduction:**
 - From 6 Azure collectors to 3 unified tools (50% reduction)
+- Remove 3 legacy normalizer files (aws_normalizer.go, aws_normalizer_refactored.go, azure_normalizer.go)
 - Eliminate code duplication across collectors
 - Simplified command structure for contributors
 
@@ -72,8 +104,10 @@ type ExplorerConfig struct {
 - All current capabilities maintained through configuration
 - No loss of data collection features
 - Enhanced flexibility through unified interfaces
+- V2 normalizers already in production use
 
 **Migration Effort:**
 - Low risk - existing collectors remain functional during transition
+- Zero risk for normalizer cleanup - no production references
 - Clear migration path through configuration mapping
 - Backward compatibility maintained
