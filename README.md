@@ -280,10 +280,17 @@ go run cmd/server/main.go
 ### Direct Data Collection Tools
 ```bash
 # Collect single region data
-go run cmd/azure-raw-collector/main.go eastus
+go run cmd/azure-collector/main.go --region eastus --storage jsonb --output database
 
 # Collect all regions with 3 concurrent workers
-go run cmd/azure-all-regions/main.go 3
+go run cmd/azure-collector/main.go --regions all --concurrent 3 --storage jsonb --output database
+
+# Use predefined profiles for backward compatibility
+go run cmd/azure-collector/main.go --profile azure-raw-collector
+go run cmd/azure-collector/main.go --profile azure-all-regions
+
+# List available profiles
+go run cmd/azure-collector/main.go --list-profiles
 ```
 
 ## Project Structure
@@ -292,11 +299,24 @@ go run cmd/azure-all-regions/main.go 3
 cpc/
 ├── cmd/
 │   ├── server/main.go              # GraphQL API server with population endpoints
-│   ├── azure-raw-collector/        # Single region data collector
-│   └── azure-all-regions/          # Multi-region concurrent collector
-├── internal/database/
-│   ├── database.go                 # Core database operations
-│   └── azure_raw.go               # Azure raw data operations & progress tracking
+│   ├── azure-collector/            # Consolidated Azure collector with profiles
+│   ├── azure-all-regions/          # Legacy: Multi-region concurrent collector
+│   ├── azure-raw-collector/        # Legacy: Single region data collector  
+│   ├── azure-db-collector/         # Legacy: Database-focused collector
+│   ├── azure-explorer/             # Legacy: Console exploration collector
+│   └── azure-full-collector/       # Legacy: JSON export collector
+├── internal/
+│   ├── database/
+│   │   ├── database.go             # Core database operations
+│   │   └── azure_raw.go           # Azure raw data operations & progress tracking
+│   └── azure/                      # Consolidated Azure collection framework
+│       ├── types.go                # Configuration and data structures
+│       ├── client.go               # Unified Azure API client
+│       ├── interfaces.go           # Component interfaces for dependency injection
+│       ├── collector.go            # Core collection engine with concurrency
+│       ├── factory.go              # Factory pattern with profile configs
+│       ├── handlers.go             # All concrete implementations
+│       └── regions.go              # Region management utilities
 ├── docs-site/                     # Docusaurus documentation site
 ├── docker-compose.yml             # Complete Docker stack
 ├── Dockerfile                     # Go application container

@@ -12,22 +12,29 @@ CPC collects pricing data from cloud provider APIs and stores it in a normalized
 
 ### Collection Tools
 
-#### 1. Azure Explorer (`cmd/azure-explorer/main.go`)
-- **Purpose:** Test API and explore data structure
-- **Scope:** One service per category
-- **Usage:** `go run cmd/azure-explorer/main.go`
+#### 1. Consolidated Azure Collector (`cmd/azure-collector/main.go`)
+- **Purpose:** Unified collector with configuration profiles
+- **Scope:** Configurable (single region, multiple regions, all regions)
+- **Architecture:** Factory pattern with dependency injection
+- **Usage Examples:**
+  ```bash
+  # Single region collection
+  go run cmd/azure-collector/main.go --region eastus --storage jsonb
+  
+  # All regions with concurrency
+  go run cmd/azure-collector/main.go --regions all --concurrent 3
+  
+  # Use predefined profiles
+  go run cmd/azure-collector/main.go --profile azure-raw-collector
+  go run cmd/azure-collector/main.go --profile azure-all-regions
+  
+  # List available profiles
+  go run cmd/azure-collector/main.go --list-profiles
+  ```
 
-#### 2. Azure Collector (`cmd/azure-collector/main.go`)  
-- **Purpose:** Collect from multiple regions
-- **Scope:** Limited sample data
-- **Usage:** `go run cmd/azure-collector/main.go`
+#### 2. Legacy Collectors (Maintained for Backward Compatibility)
 
-#### 3. Azure Full Collector (`cmd/azure-full-collector/main.go`)
-- **Purpose:** Complete data collection from one region
-- **Scope:** All services and pricing from East US
-- **Usage:** `go run cmd/azure-full-collector/main.go`
-
-#### 4. Azure DB Collector (`cmd/azure-db-collector/main.go`)
+#### Azure Explorer (`cmd/azure-explorer/main.go`)
 - **Purpose:** Production data collection and storage
 - **Scope:** Complete data with database storage
 - **Usage:** `go run cmd/azure-db-collector/main.go`
