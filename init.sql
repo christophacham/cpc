@@ -123,6 +123,20 @@ CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_collection_id ON aws_pricing_raw(
 -- JSONB indexes for querying inside the data
 CREATE INDEX IF NOT EXISTS idx_aws_pricing_raw_data_gin ON aws_pricing_raw USING GIN (data);
 
+-- Performance indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_product_family ON aws_pricing_raw USING GIN ((data->>'productFamily'));
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_instance_type ON aws_pricing_raw USING GIN ((data->'attributes'->>'instanceType'));
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_location ON aws_pricing_raw USING GIN ((data->'attributes'->>'location'));
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_storage_class ON aws_pricing_raw USING GIN ((data->'attributes'->>'storageClass'));
+CREATE INDEX IF NOT EXISTS idx_aws_pricing_ondemand ON aws_pricing_raw USING GIN ((data->'terms'->'OnDemand'));
+
+-- Azure specific query pattern indexes
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_service_name ON azure_pricing_raw USING GIN ((data->>'serviceName'));
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_arm_region ON azure_pricing_raw USING GIN ((data->>'armRegionName'));
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_arm_sku ON azure_pricing_raw USING GIN ((data->>'armSkuName'));
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_meter_name ON azure_pricing_raw USING GIN ((data->>'meterName'));
+CREATE INDEX IF NOT EXISTS idx_azure_pricing_type ON azure_pricing_raw USING GIN ((data->>'type'));
+
 -- AWS collection indexes
 CREATE INDEX IF NOT EXISTS idx_aws_collections_status ON aws_collections(status);
 CREATE INDEX IF NOT EXISTS idx_aws_collections_started ON aws_collections(started_at);

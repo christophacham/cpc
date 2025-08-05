@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -23,14 +24,73 @@ type PricingResponse struct {
 
 var db *sql.DB
 
+// Valid region patterns
+var awsRegionPattern = regexp.MustCompile(`^[a-z]{2}-[a-z]+-\d+$`)
+var azureRegionPattern = regexp.MustCompile(`^[a-z]+[a-z0-9]*$`)
+
+// validateAWSRegion validates AWS region format
+func validateAWSRegion(region string) bool {
+	return awsRegionPattern.MatchString(region)
+}
+
+// validateAzureRegion validates Azure region format  
+func validateAzureRegion(region string) bool {
+	return azureRegionPattern.MatchString(region)
+}
+
+// corsMiddleware adds CORS headers
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "X-API-Key, Content-Type")
+		
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		
+		next(w, r)
+	}
+}
+
+// authMiddleware provides basic API key authentication
+func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		apiKey := os.Getenv("API_KEY")
+		
+		// Skip auth if no API key is configured (development mode)
+		if apiKey == "" {
+			log.Println("Warning: No API_KEY configured - running in development mode")
+			next(w, r)
+			return
+		}
+		
+		// Check API key in header
+		providedKey := r.Header.Get("X-API-Key")
+		if providedKey != apiKey {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		
+		next(w, r)
+	}
+}
+
 func main() {
-	// Connect to database
+	// Connect to database with connection pooling
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
+	
+	// Configure connection pool
+	db.SetMaxOpenConns(25)                 // Maximum open connections
+	db.SetMaxIdleConns(10)                 // Maximum idle connections
+	db.SetConnMaxLifetime(5 * 60)          // 5 minutes connection lifetime
 
 	// Test connection
 	if err := db.Ping(); err != nil {
@@ -39,12 +99,12 @@ func main() {
 
 	log.Println("Connected to database successfully!")
 
-	// Set up routes
-	http.HandleFunc("/", homeHandler)
-	http.HandleFunc("/pricing/aws", awsPricingHandler)
-	http.HandleFunc("/pricing/azure", azurePricingHandler)
-	http.HandleFunc("/pricing/unified", unifiedPricingHandler)
-	http.HandleFunc("/health", healthHandler)
+	// Set up routes with CORS and authentication
+	http.HandleFunc("/", corsMiddleware(homeHandler))
+	http.HandleFunc("/pricing/aws", corsMiddleware(authMiddleware(awsPricingHandler)))
+	http.HandleFunc("/pricing/azure", corsMiddleware(authMiddleware(azurePricingHandler)))
+	http.HandleFunc("/pricing/unified", corsMiddleware(authMiddleware(unifiedPricingHandler)))
+	http.HandleFunc("/health", corsMiddleware(healthHandler))  // Health check doesn't need auth
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -91,6 +151,12 @@ func awsPricingHandler(w http.ResponseWriter, r *http.Request) {
 	if region == "" {
 		region = "us-east-1"
 	}
+	
+	// Validate region format
+	if !validateAWSRegion(region) {
+		http.Error(w, "Invalid AWS region format", http.StatusBadRequest)
+		return
+	}
 
 	response := PricingResponse{
 		Provider: "aws",
@@ -124,6 +190,12 @@ func azurePricingHandler(w http.ResponseWriter, r *http.Request) {
 	region := r.URL.Query().Get("region")
 	if region == "" {
 		region = "eastus"
+	}
+	
+	// Validate region format
+	if !validateAzureRegion(region) {
+		http.Error(w, "Invalid Azure region format", http.StatusBadRequest)
+		return
 	}
 
 	response := PricingResponse{
@@ -285,14 +357,14 @@ func getAWSStoragePrices(region string) map[string]float64 {
 			FROM aws_pricing_raw
 			WHERE service_code = 'AmazonS3'
 			AND data->>'productFamily' = 'Storage'
-			AND data->'attributes'->>'storageClass' ILIKE $1
+			AND data->'attributes'->>'storageClass' = $1
 			AND data->'attributes'->>'location' = $2
 			AND data->'terms'->'OnDemand' IS NOT NULL
 			LIMIT 1
 		`
 		
 		var price float64
-		err := db.QueryRow(query, "%"+storageClass+"%", location).Scan(&price)
+		err := db.QueryRow(query, storageClass, location).Scan(&price)
 		if err == nil && price > 0 {
 			prices[key] = price
 		}
@@ -415,13 +487,13 @@ func getAzureStoragePrices(region string) map[string]float64 {
 			FROM azure_pricing_raw
 			WHERE data->>'serviceName' = 'Storage'
 			AND data->>'armRegionName' = $1
-			AND data->>'meterName' ILIKE $2
+			AND data->>'meterName' = $2
 			AND data->>'type' = 'Consumption'
 			LIMIT 1
 		`
 		
 		var price float64
-		err := db.QueryRow(query, region, "%"+meterName+"%").Scan(&price)
+		err := db.QueryRow(query, region, meterName).Scan(&price)
 		if err == nil && price > 0 {
 			prices[key] = price
 		}
